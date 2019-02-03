@@ -1,0 +1,400 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Where to put Angular with Redux | Realgorithm</title>
+    <meta name="description" content="How to Win Programs and Influence Code." />
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link  rel="stylesheet" href="/css/screen.css" /><link  rel="stylesheet" href="/css/monokai_sublime.css" /><link  rel="stylesheet" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+    <meta name="generator" content="Docpad 6.x" />
+    <link rel="alternate" type="application/rss+xml" title="Realgorithm" href="/rss.xml" />
+    <style type="text/css">
+      #mc_embed_signup{clear:left; font:14px Helvetica,Arial,sans-serif; color: #fff}
+      #mc_embed_signup_scroll > h2 {color: #fff}
+    </style>
+  </head>
+  <body class="post-template nav-closed">
+    <div class="nav">
+    <h3 class="nav-title">Menu</h3>
+    <a href="#" class="nav-close">
+      <span class="hidden">Close</span>
+    </a>
+    <ul>
+      
+        <li class="nav-any" role="presentation">
+          <a href="/">Home</a>
+        </li>
+      
+        <li class="nav-any" role="presentation">
+          <a href="/about.html">About</a>
+        </li>
+      
+    </ul>
+    <a class="subscribe-button icon-feed" href="/rss.xml">Subscribe With RSS</a>
+</div>
+<span class="nav-cover"></span>
+
+    <div class="site-wrapper">
+
+      <header class="main-header post-head" style="background-image: url(/img/heads/redux.jpg)">
+  <nav class="main-nav overlay clearfix">
+    
+    <a class="blog-logo" href="http://realgorithm.io/"><img src="/img/logo.png" alt="Realgorithm" /></a>
+       
+  </nav>
+</header>
+
+<main class="content" role="main">
+  <article class="post">
+
+    <header class="post-header">
+      <h1 class="post-title">Where to put Angular with Redux</h1>
+      <section class="post-meta">
+        
+        <time class="post-date" datetime="2018-March-05">05 March 2018</time> 
+  <a href="/tags/redux.html">redux</a>, 
+
+  <a href="/tags/javascript.html">javascript</a>, 
+
+  <a href="/tags/angular.html">angular</a>
+
+      </section>
+    </header>
+    
+    <section class="post-content">
+      <p>I am reasonably new to Angular 2+ and have already made a bunch of bad decisions when using it with Redux. This is probably old news to most people but one thing I struggled with was how to work with Redux selectors and where to put them in components.</p>
+<p>I have dabbled with React and Redux and one thing I liked a lot was the concept of <a href="https://reactjs.org/docs/components-and-props.html">functional components</a>. That&#39;s where all the component state gets passed in as parameters and no internal modification of state is done. Therefore you can test any variation of the components behavior by modifying the inputs. </p>
+<p>If state needs to be changed, the component emits events that produce actions that alter the application state. Any interaction with external things like the Redux store would happen in container components where you bind the inputs and outputs for any child components. </p>
+<p>Good terms for these concepts that I came across in <a href="https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0">a post by Dan Abramov</a> are Presentation and Container components. Presentation components being the simple components that take state as inputs and present it. Container components being the components that manage interaction with the likes of Redux and provide inputs to presentational components. </p>
+<p>I recently started working on a reasonably large angular project. I struggled with finding good examples and developing a good idea of where things should go to keep the code base clean.</p>
+<p>One thing that caught me out a lot was how coupled the component code was to Redux, or at least <a href="https://github.com/angular-redux/store">ng2-redux</a>. This code base is making heavy use of the <a href="https://github.com/angular-redux/store/blob/master/articles/select-pattern.md">select pattern</a> A typical component in the code base might look something like this, taking a really simple and made-up user list as an example.</p>
+<pre class="highlight"><code class="hljs javascript">
+@Component({
+  <span class="hljs-attr">selector</span>: <span class="hljs-string">'app-users'</span>,
+  <span class="hljs-attr">templateUrl</span>: <span class="hljs-string">'./users.component.html'</span>
+})
+<span class="hljs-keyword">export</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">UsersComponent</span> <span class="hljs-title">implements</span> <span class="hljs-title">OnInit</span> </span>{
+
+  @select([<span class="hljs-string">'userManagement'</span>, <span class="hljs-string">'users'</span>]) users$: Observable&lt;User[]&gt;;
+
+  <span class="hljs-keyword">constructor</span>(private userManagementActions: UserManagementActions) {
+  }
+
+  @dispatch()
+  ngOnInit() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.userManagementActions.fetchUsers();
+  }
+
+}
+
+</code></pre>
+<p>And a simple template for that.</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">li</span> *<span class="hljs-attr">ngFor</span>=<span class="hljs-string">"let user of (users$ | async)"</span>&gt;</span>
+    {{ user.name }}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+</code></pre>
+<p>There&#39;s nothing particularly wrong with this. It will work fine. </p>
+<p>From a design and clean code perspective, issues can start to crop up when this component is used in other components and if this component is going to get used in more that one place.</p>
+<p>Let&#39;s look at how we might test this component.</p>
+<pre class="highlight"><code class="hljs javascript">describe(<span class="hljs-string">'UsersComponent'</span>, () =&gt; {
+  <span class="hljs-keyword">let</span> component: UsersComponent;
+  <span class="hljs-keyword">let</span> fixture: ComponentFixture&lt;UsersComponent&gt;;
+  <span class="hljs-keyword">let</span> userManagementActions: UserManagementActions;
+  <span class="hljs-keyword">let</span> element: HTMLElement;
+  <span class="hljs-keyword">let</span> ngRedux;
+  <span class="hljs-keyword">let</span> usersSelector;
+
+  beforeEach(<span class="hljs-keyword">async</span>(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    TestBed.configureTestingModule({
+      <span class="hljs-attr">imports</span>: [NgReduxTestingModule],
+      <span class="hljs-attr">declarations</span>: [UsersComponent],
+      <span class="hljs-attr">providers</span>: [UserManagementActions]
+    })
+    .compileComponents();    
+  }));
+
+  beforeEach(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    MockNgRedux.reset();
+    usersSelector = MockNgRedux.getSelectorStub([<span class="hljs-string">'userManagement'</span>, <span class="hljs-string">'users'</span>]);
+    ngRedux = TestBed.get(NgRedux);
+    spyOn(ngRedux, <span class="hljs-string">'dispatch'</span>);
+
+    fixture = TestBed.createComponent(UsersComponent);
+    userManagementActions = TestBed.get(UserManagementActions);
+    component = fixture.componentInstance;
+    element = fixture.debugElement.nativeElement;
+
+    fixture.detectChanges();
+  });
+
+  it(<span class="hljs-string">'should dispatch fetchUsers action'</span>, () =&gt; {
+    expect(ngRedux.dispatch).toHaveBeenCalledWith(userManagementActions.fetchUsers());
+  });
+
+  it(<span class="hljs-string">'should render users'</span>, () =&gt; {
+    usersSelector.next([{<span class="hljs-attr">id</span>: <span class="hljs-string">'one'</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">'First'</span>}, {<span class="hljs-attr">id</span>: <span class="hljs-string">'two'</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">'Second'</span>}]);
+    fixture.detectChanges();
+
+    <span class="hljs-keyword">const</span> userElements = element.querySelectorAll(<span class="hljs-string">'li'</span>);
+
+    expect(userElements[<span class="hljs-number">0</span>].textContent).toContain(<span class="hljs-string">'First'</span>);
+    expect(userElements[<span class="hljs-number">1</span>].textContent).toContain(<span class="hljs-string">'Second'</span>);
+  });
+
+});
+
+</code></pre>
+<p>It&#39;s a really simple component but there is still a fairly large amount of boilerplate test setup code there. Also, we have really embedded Redux in to that component. The test needs to do a lot of mocking. We need to mock Redux, verify we dispatch an action on initialization, mock what comes from the store and test that we render that correctly. </p>
+<p>What if we need an almost identical component but want to dispatch a slightly different action on initialization? </p>
+<p>Doing all this setup for every component test gets to be a bit of a drag.</p>
+<p>There&#39;s just a bunch of issues with doing components this way I think but it still seems to be a common pattern. </p>
+<p>The solution to avoid these issues may be really obvious to most but I had to struggle a bit before arriving at it.</p>
+<h2 id="presentation-components">Presentation Components</h2>
+<p>We don&#39;t have the functional syntax for components that React has in Angular but we have something similar. </p>
+<p>Angular components have the <a href="https://angular.io/api/core/Input">@Input()</a> and <a href="https://angular.io/api/core/Output">@Output()</a> property decorators. These allow us to take all the required state as inputs and emit any internal events as outputs. If we emit an event to update the Redux store for example, the inputs can be changed in the container and the components can be re-rendered. This way the component only needs to know how to present the input state and what to emit on an interaction. </p>
+<p>We could instead write the component like this.</p>
+<pre class="highlight"><code class="hljs javascript">@Component({
+  <span class="hljs-attr">selector</span>: <span class="hljs-string">'app-users'</span>,
+  <span class="hljs-attr">templateUrl</span>: <span class="hljs-string">'./users.component.html'</span>,
+  <span class="hljs-attr">changeDetection</span>: ChangeDetectionStrategy.OnPush
+})
+<span class="hljs-keyword">export</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">UsersComponent</span> </span>{
+
+  @Input()
+  users: User[] = [];
+
+}
+</code></pre>
+<p>The template would be updated to look like this (just removing the async pipe).</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">li</span> *<span class="hljs-attr">ngFor</span>=<span class="hljs-string">"let user of users"</span>&gt;</span>
+    {{ user.name }}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+</code></pre>
+<p>The tests get a bit easier for that component then. Just set the value of the input add test the rendering. </p>
+<pre class="highlight"><code class="hljs javascript">describe(<span class="hljs-string">'UsersComponent'</span>, () =&gt; {
+  <span class="hljs-keyword">let</span> component: UsersComponent;
+  <span class="hljs-keyword">let</span> fixture: ComponentFixture&lt;UsersComponent&gt;;
+  <span class="hljs-keyword">let</span> element: HTMLElement;
+
+  beforeEach(<span class="hljs-keyword">async</span>(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    TestBed.configureTestingModule({
+      <span class="hljs-attr">declarations</span>: [UsersComponent]
+    })
+      .compileComponents();
+  }));
+
+  beforeEach(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    fixture = TestBed.createComponent(UsersComponent);
+    component = fixture.componentInstance;
+    element = fixture.debugElement.nativeElement;
+  });
+
+  it(<span class="hljs-string">'should render users'</span>, () =&gt; {
+    component.users = [{<span class="hljs-attr">id</span>: <span class="hljs-string">'one'</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">'First'</span>}, {<span class="hljs-attr">id</span>: <span class="hljs-string">'two'</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">'Second'</span>}];
+    fixture.detectChanges();
+
+    <span class="hljs-keyword">const</span> userElements = element.querySelectorAll(<span class="hljs-string">'li'</span>);
+
+    expect(userElements[<span class="hljs-number">0</span>].textContent).toContain(<span class="hljs-string">'First'</span>);
+    expect(userElements[<span class="hljs-number">1</span>].textContent).toContain(<span class="hljs-string">'Second'</span>);
+  });
+
+});
+</code></pre>
+<p>There&#39;s a lot less boilerplate and I think the tests are a lot cleaner since we are not mocking or stubbing internal state.</p>
+<p>Because we have kept the component so simple and with less dependencies it is easier to test and also much more reusable than if we used those Redux selectors directly. </p>
+<h4 id="changedetection-changedetectionstrategy-onpush">changeDetection: ChangeDetectionStrategy.OnPush</h4>
+<p>You may have noticed we set the <a href="https://angular.io/api/core/ChangeDetectionStrategy">changeDetection</a> property for the component. This is something we should try to use when writing our components this way. When we set this we are saying we will not change the inputs internally. This allows a little optimization because Angular won&#39;t check the internal state to see if it needs to update the rendering. Therefore if you change the state internally, the updates will not get picked up for rendering. The change detection strategy checks the reference of the input and if that has not changed, it does nothing. This makes it work well with Redux since we will always bring back a new reference from the store if there was a change. </p>
+<h2 id="container-components">Container Components</h2>
+<p>We can&#39;t avoid having dependencies between Redux and our components completely but we can keep it in container components. </p>
+<p>Say you have a component representing a page that contains a list of users and maybe something else. That could be the Container component since it probably won&#39;t have any complicated things to do itself. For example:</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">some-other-thing</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">some-other-thing</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">app-users</span> [<span class="hljs-attr">users</span>]=<span class="hljs-string">"users$ | async"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">app-users</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre>
+<pre class="highlight"><code class="hljs javascript">@Component({
+  <span class="hljs-attr">selector</span>: <span class="hljs-string">'app-user-management'</span>,
+  <span class="hljs-attr">templateUrl</span>: <span class="hljs-string">'./user-management.component.html'</span>
+})
+<span class="hljs-keyword">export</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">UserManagementComponent</span> <span class="hljs-title">implements</span> <span class="hljs-title">OnInit</span> </span>{
+
+  @select([<span class="hljs-string">'userManagement'</span>, <span class="hljs-string">'users'</span>]) users$: Observable&lt;User[]&gt;;
+
+  <span class="hljs-keyword">constructor</span>(private userManagementActions: UserManagementActions) {
+  }
+
+  @dispatch()
+  ngOnInit() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.userManagementActions.fetchUsers();
+  }
+
+}
+</code></pre>
+<p>Now we only need to test the Redux related things there (with all the mocking and boilerplate setup code), keeping the child components simple.</p>
+<p>In React the tendency is to have one container component for each presenter with the container having no makeup of its own. This is another potential pattern to try out here.</p>
+<h2 id="interactions">Interactions</h2>
+<p>What if you need a component to dispatch and action to the store?</p>
+<p>So lets say the user list has a delete button and on clicking it, you want to fire off an action to delete that user. </p>
+<pre class="highlight"><code class="hljs javascript">@dispatch()
+deleteUser(user: User) {
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.userManagementActions.deleteUser(user);
+}
+</code></pre>
+<p>You could add that to the UsersComponent but then you&#39;re back to adding all that Redux test stuff. Instead it might be good to emit that event using an Output. </p>
+<pre class="highlight"><code class="hljs javascript">@Output()
+onDeleteUser: EventEmitter&lt;User&gt; = <span class="hljs-keyword">new</span> EventEmitter&lt;User&gt;();
+
+deleteUser(user: User) {
+  <span class="hljs-keyword">this</span>.onDeleteUser.emit(user);
+}
+</code></pre>
+<p>Now we can dispatch the action in the container by listening for that event.</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">some-other-thing</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">some-other-thing</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">app-users</span> [<span class="hljs-attr">users</span>]=<span class="hljs-string">"users$ | async"</span> (<span class="hljs-attr">onDeleteUser</span>)=<span class="hljs-string">"deleteUser($event)"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">app-users</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>I am definitely finding Angular code easier to understand and test using this technique. It&#39;s still not great but it&#39;s a bit more manageable. Angular and Redux are both fine tools but, like any code bases, the code base using them can start to get pretty messy unless some decent patterns are used. The Container &amp; Presenter pattern is a good one for this scenario I believe.</p>
+<p>Some runnable example code for the above is here: <a href="https://github.com/ruairitobrien/angular-demo-code/tree/master/src/app/user-management">https://github.com/ruairitobrien/angular-demo-code/tree/master/src/app/user-management</a></p>
+
+    </section>
+
+      <div class="comments">
+          <div id="disqus_thread"></div>
+          <script>
+              var disqus_config = function () {
+                 // this.page.url = '/2018/03/where-to-put-redux'; // Replace PAGE_URL with your page's canonical URL variable
+                  this.page.identifier = '/2018/03/where-to-put-redux'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                  this.page.title = 'Where to put Angular with Redux';
+              };
+              (function () { // DON'T EDIT BELOW THIS LINE
+                  var d = document, s = d.createElement('script');
+
+                  s.src = '//ruairitobrien.disqus.com/embed.js';
+
+                  s.setAttribute('data-timestamp', +new Date());
+                  (d.head || d.body).appendChild(s);
+              })();
+          </script>
+      </div>
+
+
+    
+    <footer class="post-footer">
+
+      
+      <figure class="author-image">
+        <a class="img" href="" style="background-image: url(/img/rob.jpg)"><span class="hidden">Ruairi O'Brien's Picture</span></a>
+      </figure>
+      
+
+      <section class="author">
+        <h4><a href="">Ruairi O'Brien</a></h4>
+
+        
+        <p>Code. Code. Code. Family stuff. Play video games. Code.</p>
+        
+        <div class="author-meta">
+          
+          <span class="author-location icon-location">Cork, IE</span>
+          
+          
+        </div>
+      </section>
+
+      <section class="share">
+        <h4>Share this post</h4>
+        <a class="icon-twitter" href="https://twitter.com/intent/tweet?text=Where%20to%20put%20Angular%20with%20Redux&amp;url="
+          onclick="window.open(this.href + window.location.href, 'twitter-share', 'width=550,height=235');return false;">
+          <span class="hidden">Twitter</span>
+        </a>
+        <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u="
+          onclick="window.open(this.href + window.location.href, 'facebook-share','width=580,height=296');return false;">
+          <span class="hidden">Facebook</span>
+        </a>
+        <a class="icon-google-plus" href="https://plus.google.com/share?url="
+          onclick="window.open(this.href + window.location.href, 'google-plus-share', 'width=490,height=530');return false;">
+          <span class="hidden">Google+</span>
+        </a>
+      </section>
+
+    </footer>
+
+  </article>
+</main>
+
+<aside class="read-next">
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+      
+        <a class="read-next-story" style="background-image: url(/img/heads/terror-hotel.jpg)" href="/2018/03/terror-hotel">
+          <section class="post">
+            <h2>The Terror Hotel</h2>
+            <p>*I started having very vivid dreams at one point. I decided to start writing them down as soon as&hellip;</p>
+          </section>
+        </a>
+      
+      
+        <a class="read-next-story prev" style="background-image: url(/img/heads/spider-children.jpg)" href="/2018/03/spider-children">
+          <section class="post">
+            <h2>Spider Children</h2>
+            <p>*I started having very vivid dreams at one point. I decided to start writing them down as soon as&hellip;</p>
+          </section>
+        </a>
+      
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+</aside>
+
+      <footer class="site-footer clearfix">
+        <section class="copyright"><a href="http://realgorithm.io/">Realgorithm</a> &copy; 2019</section>
+        <section class="poweredby">Proudly published with <a href="https://docpad.org">Docpad</a></section>
+      </footer>
+
+    </div>
+    <script defer="defer"  src="//code.jquery.com/jquery-2.1.4.min.js"></script><script defer="defer"  src="/js/jquery.fitvids.js"></script><script defer="defer"  src="/js/index.js"></script>
+    <script id="dsq-count-scr" src="//ruairitobrien.disqus.com/count.js" async></script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-40607409-4', 'auto');
+      ga('send', 'pageview');
+    </script>
+
+  </body>
+</html>

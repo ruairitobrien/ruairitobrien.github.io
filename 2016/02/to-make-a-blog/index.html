@@ -1,0 +1,539 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>To Make a Blog | Realgorithm</title>
+    <meta name="description" content="How to Win Programs and Influence Code." />
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link  rel="stylesheet" href="/css/screen.css" /><link  rel="stylesheet" href="/css/monokai_sublime.css" /><link  rel="stylesheet" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+    <meta name="generator" content="Docpad 6.x" />
+    <link rel="alternate" type="application/rss+xml" title="Realgorithm" href="/rss.xml" />
+    <style type="text/css">
+      #mc_embed_signup{clear:left; font:14px Helvetica,Arial,sans-serif; color: #fff}
+      #mc_embed_signup_scroll > h2 {color: #fff}
+    </style>
+  </head>
+  <body class="post-template nav-closed">
+    <div class="nav">
+    <h3 class="nav-title">Menu</h3>
+    <a href="#" class="nav-close">
+      <span class="hidden">Close</span>
+    </a>
+    <ul>
+      
+        <li class="nav-any" role="presentation">
+          <a href="/">Home</a>
+        </li>
+      
+        <li class="nav-any" role="presentation">
+          <a href="/about.html">About</a>
+        </li>
+      
+    </ul>
+    <a class="subscribe-button icon-feed" href="/rss.xml">Subscribe With RSS</a>
+</div>
+<span class="nav-cover"></span>
+
+    <div class="site-wrapper">
+
+      <header class="main-header post-head" style="background-image: url(/img/heads/to-make-a-blog.jpg)">
+  <nav class="main-nav overlay clearfix">
+    
+    <a class="blog-logo" href="http://realgorithm.io/"><img src="/img/logo.png" alt="Realgorithm" /></a>
+       
+  </nav>
+</header>
+
+<main class="content" role="main">
+  <article class="post">
+
+    <header class="post-header">
+      <h1 class="post-title">To Make a Blog</h1>
+      <section class="post-meta">
+        
+        <time class="post-date" datetime="2016-February-02">02 February 2016</time> 
+  <a href="/tags/blog.html">blog</a>, 
+
+  <a href="/tags/docpad.html">docpad</a>, 
+
+  <a href="/tags/staticgen.html">staticgen</a>
+
+      </section>
+    </header>
+    
+    <section class="post-content">
+      <p>I decided to make a blog.</p>
+<p>I work as a programmer and I guess my main hobby is programming too so my decision to make a blog brought with it a lot of over thinking about how to build the blog and surprisingly little about what would be blogged.</p>
+<p>Should I sign up to a service like <a href="https://wordpress.com/">Wordpress</a>, <a href="https://www.blogger.com/home">Blogger</a> or <a href="https://medium.com/">Medium</a>? They&#39;re all nice and quick to get started. For a person who enjoys technology and works in the software industry, a place on the internet to call your own makes a lot of sense. The more control you have over it the better. None of the existing services provide a place to call your own in my view. Just like social media, you will create all the content but you must fit their format and are just part of the tapestry of their site.</p>
+<p>If the existing services aren&#39;t the right option, what are the alternatives?</p>
+<p><blockquote class="twitter-tweet" data-lang="en"><p lang="en" dir="ltr">&gt; i should write a blog post<br>&gt; don’t like my current blogging engine<br>&gt; could build one<br><em>builds blogging engine</em><br>&gt; could blog about that</p>&mdash; I Am Devloper (@iamdevloper) <a href="https://twitter.com/iamdevloper/status/743799765566054410">June 17, 2016</a></blockquote></p>
+<script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
+
+<p>Build your own site of course! One problem there is, that&#39;s a lot of work. Sure you could throw something together fairly quickly but watch the hours slip away as you try to add some of the common features on any blog site. We (developers) all know we <strong>can</strong> build a blog site from scratch. In the majority of cases, we really shouldn&#39;t.</p>
+<p>One option. Set up a <a href="https://en.wikipedia.org/wiki/LAMP_(software_bundle">LAMP</a> server, install Wordpress... I really don&#39;t want to launch in to a long spiel about why I don&#39;t like this option but, well, I don&#39;t. I don&#39;t like managing a database if I don&#39;t have to. I like things to be fast and scalable and I don&#39;t like dealing with security issues if I don&#39;t have to. If you have coding skills, take advantage of them and avoid Wordpress. That is just my opinion though. A lot of people wouldn&#39;t agree with me on that I know.</p>
+<h3>Static Site Generators</h3>
+
+<p>While over thinking all this and doing anything but actually starting my blog, I stumbled across static site generators. A novel concept to me. I did recognize names like Jekyll and Hexo but never really looked in to them before.</p>
+<p>A static site generator is what I went for in the end to build this blog. Here is a list of reasons why and these are true for the majority of static site generators you may come across, either out of the box or through plugins.</p>
+<ul>
+<li>No database</li>
+<li>Everything in source control</li>
+<li>Markdown</li>
+<li>Full control</li>
+</ul>
+<h4>No Database</h4>
+
+<p>You really don&#39;t need one to get a standard blog going. What would you want it for? Posts and Comments? Posts can be generated and stored in source control. Comments can be done using a third party tool like <a href="https://disqus.com/">Disqus</a>. I&#39;ll go in to those two facts in detail later but let me just touch on why you&#39;re actually better off without a database.</p>
+<p>A database is an extra bit of complexity in your life. If you&#39;ve set up something like Wordpress, you&#39;re stuck with a database. If you&#39;re lucky and traffic builds up you may need to figure out how to scale that database. You need to back it up, optimize it etc. etc. It can be slow. Unless you&#39;ve built some nice caching (OK maybe there&#39;s some easy plugins for that in Wordpress, I don&#39;t know), every time a user visits your blog, the database will be queried for almost everything the user sees every time they visit a page. Even if that stuff hasn&#39;t changed for ages.</p>
+<p>Databases are great of course but in my experience you should only use one if you absolutely need one. I watched a <a href="https://www.youtube.com/watch?v=asLUTiJJqdE">great talk</a> by Uncle Bob Martin on architecture where he talked about how the team working on <a href="http://www.fitnesse.org/">Fitnesse</a> got really hung up on the database design at the beginning of the project. Before they ever wrote code or played around with a prototype, the database was a primary concern. They decided to use a basic file storage method in the beginning so they could defer major decisions on the database and get some something done. In the end they discovered they didn&#39;t actually need a database at all. They made databases a plugin option.</p>
+<h4>Everything in Source Control</h4>
+
+<p>I just love <a href="https://git-scm.com/">Git</a>. I never even once thought Github and Git were the same thing! I&#39;m an old school Git lover. Using a static site generator, adding content to your site is just adding commits to source control. If you have things set up nicely, commit to master and your new blog post is published. You&#39;ve got a full history. Git is distributed so you would be very unlucky to lose all your content. What&#39;s not to love? Unless you don&#39;t like Git. That would be..... unfortunate.</p>
+<h4>Markdown</h4>
+
+<p>Markdown is grand. Simple and fast. If you&#39;ve written lots of README files for your Github projects then you know all you need to know about that. It&#39;s faster than writing plain HTML. If you know it by heart, it&#39;s faster than using a complex editor with a lot of buttons to learn. In the end it becomes HTML so you have full control over how it will look.</p>
+<h4>Full Control</h4>
+
+<p>You really do have full control. With very little learning involved, it&#39;s very easy get started with these generators. You could write all this stuff in JavaScript and HTML but the generators automate a lot of it while still leaving you full control over how everything looks, where it goes and what&#39;s generated. There&#39;s no magic and unless you&#39;ve picked a very bad tool, there&#39;s not much restrictions. Just take a little time to learn more about the tool you choose and it will pay off.</p>
+<h2>The Stack</h2>
+
+<p>I played around a little with <a href="https://github.com/jekyll/jekyll">Jekyll</a> and a <a href="http://staticgen.com/">few others</a> but in the end I settled on <a href="http://docpad.org/">Docpad</a>. It&#39;s an excellent tool and I do encourage you to look at their site. I will go through what I needed to do to get it going here.</p>
+<p>For source control I use Git and for hosting, at the time of writing, I am using <a href="https://pages.github.com/">Github pages</a>. Because the site will only have static content, I don&#39;t need to worry much about hosting. Github pages is a nice free option.</p>
+<p>Beyond that, all that&#39;s needed are a few docpad plugins and everything is set.</p>
+<h2>Build a Blog</h2>
+
+<p>If you want to use the same method I have to build a blog and follow along here, you will need to install <a href="https://nodejs.org/">Node.js</a> if you don&#39;t have it already.</p>
+<p>Once installed, you can now install docpad on the command line.</p>
+<h3>Install Docpad</h3>
+
+<pre class="highlight"><code class="hljs bash">npm i -g docpad
+</code></pre>
+<p>On their site instructions they show this as the way to install:</p>
+<pre class="highlight"><code class="hljs bash">npm install -g npm
+npm install -g docpad@6.78
+</code></pre>
+<p> The number may have changed by the time you read this. I really don&#39;t know why they suggest a specific number though. Just</p>
+<pre class="highlight"><code class="hljs bash"> npm i -g docpad
+</code></pre>
+<p>should be fine.</p>
+ <h4>Scaffold the Site</h4>
+
+<p> Create a new directory for your amazing new site. <code>cd</code> in to it and run <code>docpad run</code>.</p>
+<p> You will get a bunch of output. Here&#39;s the beginning of mine:</p>
+<pre class="highlight"><code class="hljs bash">info: Welcome to DocPad v6.78.4 (global installation: /Users/ruairiobrien/.nvm/v4.2.1/lib/node_modules/docpad)
+notice: Please donate to DocPad or have your company sponsor it: http://docpad.org/donate
+info: Contribute: http://docpad.org/docs/contribute
+info: Plugins:
+info: Environment: development
+info: Updating the exchange...
+This can take a moment...
+info: Updated the exchange
+info: You are about to create your new project inside your current directory. Below is a list of skeletons to bootstrap your new project:
+</code></pre>
+<p>This is followed by a list of supported skeletons. You can work without a starting skeleton (see option 21 below)). I did give it a go. I was able to get a simple site up and running but I had to resign to the fact that I&#39;m not a very good designer and I would learn more from a template to modify first.</p>
+<p>Here&#39;s the list I was shown:</p>
+<pre class="highlight"><code class="hljs bash">Which skeleton will you use? [1-21]
+  1.    HTML5 Boilerplate (Supported)
+  2.    Casper (Supported)
+  3.    Twitter Bootstrap (Supported)
+  4.    Twitter Bootstrap with Jade (Supported)
+  5.    Bevry<span class="hljs-string">'s Website (Supported)
+  6.    Benjamin Lupton'</span>s Website (Supported)
+  7.    DocPad<span class="hljs-string">'s Website (Supported)
+  8.    Bevry'</span>s Learning Centre (Supported)
+  9.    Startup Hostel<span class="hljs-string">'s Website (Supported)
+  10.    Static Site Generators'</span>s Website (Supported)
+  11.    HTML5 Boilerplate with Jade and LESS (Unsupported)
+  12.    SlidePad (Unsupported)
+  13.    Slides (Unsupported)
+  14.    Reveal.js (Unsupported)
+  15.    Meny (Unsupported)
+  16.    Conference Boilerplate (Unsupported)
+  17.    YUI PureCSS (Unsupported)
+  18.    Zurb Foundation (Unsupported)
+  19.    Zurb Foundation (Unsupported)
+  20.    Casteasoft Foundation Simple Blog (Unsupported)
+  21.    No Skeleton
+</code></pre>
+<p>I went with number 2, Casper. It gives you a very nice looking theme. Similar to medium or, I believe a direct copy of what the guys at <a href="https://ghost.org/">Ghost</a> provide.</p>
+<p>So, to pick the casper theme, key the number 2 and hit enter. It will take a bit of time but the operation should eventually complete and you should have a skeleton app created.</p>
+<p>You&#39;ll see this in the output too which shows what plugins were installed:</p>
+<pre class="highlight"><code class="hljs bash">info: Plugins: eco, marked, paged, partials, rss, tags
+info: Environment: development
+info: Server started on http://0.0.0.0:9778
+</code></pre>
+<p>Now you can navigate to the skeleton site at <a href="http://127.0.0.1:9778">http://127.0.0.1:9778</a>. It already looks pretty good right?</p>
+<p>This gives you a lot of code that doesn&#39;t come with the &#39;no skeleton&#39; option. For the purpose of a blog, this is a good thing I think. Even if you don&#39;t like the theme, I&#39;d be inclined to suggest using it anyway and modifying what you need unless you&#39;re very comfortable with docpad already or you really want to start from scratch and have your own specific ideas of how it all should hand together.</p>
+<p>Picking the Casper theme creates a project with these plugins and dependencies pre-installed:</p>
+<ul>
+<li>docpad-plugin-eco - for CoffeeScript templates</li>
+<li>docpad-plugin-marked - marked down to html</li>
+<li>docpad-plugin-paged - to support paging</li>
+<li>docpad-plugin-partials - to support partials</li>
+<li>docpad-plugin-rss - to support an rss feed (probably don&#39;t really need that)</li>
+<li>docpad-plugin-tags - to support tagging</li>
+<li>moment - date time formatting</li>
+</ul>
+<p>If you went with the &#39;no skeleton&#39; option you will likely want to add all these anyway.</p>
+<pre class="highlight"><code class="hljs bash">npm i moment --save
+docpad install eco marked paged partials rss tags
+</code></pre>
+<p>A quick note on <code>docpad install</code>.
+It&#39;s a handy way to install plugins but you can do so without it by simply using npm install for the plugin and updating the docpad config (more on the docpad config later).</p>
+<p>If you need to remove a plugin you use <code>docpad uninstall the-plugin-name</code> so if you wanted to uninstall the rss plugin for example it&#39;s:</p>
+<pre class="highlight"><code class="hljs bash">docpad uninstall rss
+</code></pre>
+<h3>More Plugins</h3>
+
+<p>Before you go crazy creating actual valuable content, let&#39;s procrastinate a little further and install a few more plugins. We&#39;ll just brush over what they are here and install them. We will go in to more detail about configuring them later.</p>
+<p><strong>URLs:</strong></p>
+<p>In a normal web app that you might build yourself, you&#39;d probably have routes set up for your view with nice URLs. For example: <a href="http://yourblog/2016/01/great-post">http://yourblog/2016/01/great-post</a>
+Because we have a static site now we have kind of crappy looking URLs. If you started things up on <a href="http://127.0.0.1:9778">http://127.0.0.1:9778</a> you might notice the likes of <a href="http://127.0.0.1:9778/posts/hello-post.html">http://127.0.0.1:9778/posts/hello-post.html</a>. My eyes! The humanity! What year is this?</p>
+<p>Luckily there&#39;s a couple of plugins that will sort all that out for us. How these plugins work is kind of interesting and while I could go on about it and probably randomly will, I&#39;d suggest a glance at the doc <a href="https://github.com/docpad/docpad-plugin-cleanurls">here</a> if you&#39;re interested. We will need to configure these in a bit but for now, while running things locally, just installing them will do, so run this command:</p>
+<pre class="highlight"><code class="hljs bash">docpad install cleanurls dateurls
+</code></pre>
+<p><strong>LiveReload:</strong></p>
+<p>Manually refreshing the browser when you make a change is so old school.</p>
+<pre class="highlight"><code class="hljs bash">docpad install livereload
+</code></pre>
+<p>Now when you make a change the brower will refresh automatically.</p>
+<p>Or if you prefer, use browsersync. I personally think browsersync is a bit faster and tend to use it over livereload. Note though that by default you will need to access the site on <a href="http://localhost:3000">http://localhost:3000</a> when using browsersync. You can add JSON to your plugin config to use all the standard browsersync configuration options too.</p>
+<p>Want more plugin goodness. Check them out <a href="http://docpad.org/docs/plugins">here</a></p>
+<h3>Configuration</h3>
+
+<p>Creating content is so close now we can almost taste it.</p>
+<p>Configuration is the last time consuming bit. This is where we dump out all the old boilerplate stuff we don&#39;t need for the generated site, configure how it all works and maybe even throw in a &#39;Hello World&#39; post.</p>
+<p>Lets have a quick look at the existing folder structure that came with the Casper theme. If you run a find command (exclude &#39;out&#39;, &#39;.git&#39; and &#39;node_modules&#39;) you should see something like this:</p>
+<pre class="highlight"><code class="hljs bash">./.gitignore
+./docpad.coffee
+./LICENSE
+./package.json
+./README.md
+./src/layouts/default.html.eco
+./src/layouts/page.html.eco
+./src/layouts/post.html.eco
+./src/layouts/tag.html.eco
+./src/partials/article-pager.html.eco
+./src/partials/author.html.eco
+./src/partials/loop.html.eco
+./src/partials/masthead.html.eco
+./src/partials/navigation.html.eco
+./src/partials/pagination.html.eco
+./src/partials/tags.html.eco
+./src/render/about.html.md
+./src/render/index.html.eco
+./src/render/posts/hello-post.html.md
+./src/render/posts/looking-glass-house.html.md.eco
+./src/render/posts/style-test.html.md
+./src/static/css/screen.css
+./src/static/fonts/casper-icons.eot
+./src/static/fonts/casper-icons.svg
+./src/static/fonts/casper-icons.ttf
+./src/static/fonts/casper-icons.woff
+./src/static/img/bear-masthead.jpg
+./src/static/img/carroll-cover.jpg
+./src/static/img/cover.jpg
+./src/static/img/hello-2-masthead.jpg
+./src/static/img/hello-masthead.jpg
+./src/static/img/logo.png
+./src/static/img/testimg1.jpeg
+./src/static/img/testimg2.jpg
+./src/static/js/index.js
+./src/static/js/jquery.fitvids.js
+</code></pre>
+<p>The template gives you a bunch of sample images. Remove the images if you like.</p>
+<pre class="highlight"><code class="hljs bash">rm -rf ./src/static/img/*
+</code></pre>
+<p>If you do delete the images, the site will suddenly look very boring. Finding replacement images may be the hardest thing you ever do. Just a warning. Also you&#39;ll need to update any images links in the template files you keep.</p>
+<p>All our blog post will be in src/render/posts. I&#39;d recommend emptying that folder now.</p>
+<pre class="highlight"><code class="hljs bash">rm -rf ./src/render/posts/*
+</code></pre>
+<p>You may have noticed a mix of .md and .md.eco files in there before. Docpad allows you to write markdown and have it converted to HTML. The .eco files in there are examples of a slightly more complex use case with pages that wouldn&#39;t be easily done in just markdown.</p>
+<p>.eco files are files that use a CoffeeScript templating language. See <a href="https://github.com/sstephenson/eco">the project page</a> for more on that.</p>
+<p>Ultimately all these files are processed and put in the &#39;out&#39; directory. If you&#39;ve had an out directory created already and you end up removing some files, I&#39;ve found I had to delete the whole out directory since file processing doesn&#39;t appear to remove files that were removed from the src folder. That is, deleting a post from src for example, doesn&#39;t appear to delete it from the generated output so just deleting the out directory is a quick way to be sure you&#39;re in sync.</p>
+<p>You&#39;ll likely want to keep everything that&#39;s in the layouts folder although you may want to change them a bit. They&#39;re straight forward to understand if you give them a quick read.</p>
+<p>I must admit, while I&#39;ve been tempted a few times, I never took the time to learn CoffeeScript. It looks fairly straight forward and I probably could have hacked away and figured it out but I just don&#39;t plan on learning CoffeeScript. Particularly with ES6 around now. I really do like JavaScript so I decided to rename docpad.coffee to docpad.js and I ran the contents through a converter. <a href="http://js2.coffee/">http://js2.coffee/</a> did the trick for me. If you like CoffeeScript, great! Leave it as is.</p>
+<p>docpad.js (or docpad.coffee if that&#39;s what you stuck with) is your main configuration file.</p>
+<p>You will see the configuration object created <code>docpadConfig</code>. I&#39;ll briefly run through its properties here.</p>
+<p><code>docpadConfig.templateData</code></p>
+<p>This is all the stuff that will get injected in to your site. I think most of it is fairly obvious. I decided to trim down the navigation property to this:</p>
+<pre class="highlight"><code class="hljs javascript">navigation: [
+    {
+        <span class="hljs-attr">name</span>: <span class="hljs-string">'Home'</span>,
+        <span class="hljs-attr">href</span>: <span class="hljs-string">'/'</span>,
+        <span class="hljs-attr">section</span>: <span class="hljs-string">'home'</span>
+    }, {
+        <span class="hljs-attr">name</span>: <span class="hljs-string">'About'</span>,
+        <span class="hljs-attr">href</span>: <span class="hljs-string">'/about.html'</span>,
+        <span class="hljs-attr">section</span>: <span class="hljs-string">'about'</span>
+    }
+]
+</code></pre>
+<p>The rest of the templateData object is some data and helpers for formatting dates, text, helping with navigation and other useful stuff. You don&#39;t get these in the &#39;no skeleton&#39; version so even if all you used from the Casper theme was the configuration in docpad.js, you&#39;d be saving a bit of time.</p>
+<p>Fill in any values you like and we will move on.</p>
+<p><code>docpadConfig.collections</code></p>
+<p>For the purposes of a blog, the default collection here is perfect. It goes in to src/render/posts, gets all our posts (our markdown files) as a collection, specifies the layout src/layout/post.html.eco. These get converted to nice HTML files for us in the out directory. The collection can query using the YAML at the start of a post (more on that soon) and the collection can be used in our template code. For example in src/partials/loop.html.eco you can see <code>&lt;% for page in @getPageCollection(&quot;posts&quot;).toJSON(): %&gt;</code>.</p>
+<p><code>docpadConfig.plugins</code></p>
+<p>This where we configure our plugins. Recall we added a few earlier. Here&#39;s my entire plugins configuration.</p>
+<pre class="highlight"><code class="hljs javascript">plugins: {
+    <span class="hljs-attr">tags</span>: {
+        <span class="hljs-attr">extension</span>: <span class="hljs-string">'.html'</span>,
+        <span class="hljs-attr">injectDocumentHelper</span>: <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params">doc</span>) </span>{
+            <span class="hljs-keyword">return</span> doc.setMeta({
+                <span class="hljs-attr">layout</span>: <span class="hljs-string">'tag'</span>
+            });
+        }
+    },
+    <span class="hljs-attr">rss</span>: {
+        <span class="hljs-string">"default"</span>: {
+            <span class="hljs-attr">collection</span>: <span class="hljs-string">'posts'</span>,
+            <span class="hljs-attr">url</span>: <span class="hljs-string">'/rss.xml'</span>
+        }
+    },
+    <span class="hljs-attr">cleanurls</span>: {
+        <span class="hljs-attr">static</span>: <span class="hljs-literal">true</span>
+    },
+    <span class="hljs-attr">dateurls</span>: {
+        <span class="hljs-attr">cleanurl</span>: <span class="hljs-literal">true</span>,
+        <span class="hljs-attr">trailingSlashes</span>: <span class="hljs-literal">false</span>,
+        <span class="hljs-attr">collectionName</span>: <span class="hljs-string">'posts'</span>,
+        <span class="hljs-attr">dateFormat</span>: <span class="hljs-string">'/YYYY/MM'</span>
+    },
+    <span class="hljs-attr">browsersync</span>: {
+        <span class="hljs-attr">open</span>: <span class="hljs-literal">false</span>
+    }
+}
+</code></pre>
+<p><code>plugins.tags</code>
+Came pre-configured. It seems that when you create a new post with tags in the YAML, the tags plugin will give some features that the Casper theme has sorted out for us.</p>
+<p><code>plugins.rss</code>
+Do people still use rss feeds? I don&#39;t think I&#39;ve ever used one. If you&#39;re in to that though, this will put a feed of your posts in to the specified url, &#39;/rss.xml&#39; in this case which you can then serve.</p>
+<p><code>plugins.cleanurls</code>
+Remember that cleanurls plugin we installed earlier? The static: true bit says that we want cleanurls when the site is being statically served. We need this when using the likes of Github Pages.</p>
+<p><code>plugins.dateurls</code>
+This is where we configure the date bit in a URL if you want that. Just leave this out if you don&#39;t.
+Here we&#39;re saying, use the cleanurls for posts, no need to put a slash at then end of post links and use the format &#39;/YYYY/MM&#39; so we get a URL like <a href="http://yourblog/2016/01/my-post">http://yourblog/2016/01/my-post</a></p>
+<p>If you blog every day you might like a format such as &#39;/YYYY/MM/DD&#39;.</p>
+<p>Date URLS are only used for the specified collection, posts in this case.</p>
+<p><code>plugins.browsersync</code>
+Just to show how to configure it browsersync. Also that auto opening browser thing kind of bugs me a bit. If you&#39;re happy with the defaults (or you&#39;re using livereload), no need to put anything in here.</p>
+<h3>Adding a Post</h3>
+
+<p>Adding a post is pretty much a case of adding a supported file under the src/render/posts directory. Right away there are two types of file you can use. There are the coffee script template files that end with .eco, so if you have a post called My First Post, you might call the file my-first-post.html.md.eco. You also have plain markdown files so you might call the file my-first-post.html.md. When you run docpad and it does its thing, the outputted file will be called my-first-post.html in both cases.</p>
+<p>Whether you use .eco or markdown, you must begin the file with some <a href="http://www.yaml.org/start.html">YAML</a> that describes the post. This is parsed by docpad when building the posts collection.</p>
+<p>In the casper theme, using a .eco file is handy for something like paging. In the generated example template you can see src/render/posts/looking-glass-house.html.md.eco.</p>
+<p>In the YAML section, the fact the post is paginated is called out:</p>
+<p>isPaged: true
+pageCount: 3
+pageSize: 1
+split: true</p>
+<p>The file uses this code:</p>
+<pre class="highlight"><code class="hljs coffeescript">&lt;% <span class="hljs-keyword">if</span> @document.page.number <span class="hljs-keyword">is</span> <span class="hljs-number">0</span>: %&gt;
+Some content
+&lt;% <span class="hljs-keyword">else</span> <span class="hljs-keyword">if</span> @document.page.number <span class="hljs-keyword">is</span> <span class="hljs-number">1</span>: %&gt;
+Some more content
+&lt;% end %&gt;
+</code></pre>
+<p>So the post is all defined on one file but when rendered, is paged. Running locally, if you try it out, you&#39;ll see the page number in the URL. When you navigate to the first page it&#39;s a normal URL:
+<a href="http://localhost:9778/posts/looking-glass-house">http://localhost:9778/posts/looking-glass-house</a> but once you click on a link to the next page you get a number in the URL: <a href="http://localhost:9778/posts/looking-glass-house/2">http://localhost:9778/posts/looking-glass-house/2</a></p>
+<p>Besides CoffeeScript templates, you can use Markdown. You can also just stick html tags in your post it seems but markdown is a nice way to create content. If you&#39;re not used to markdown you could try this site out <a href="http://markdowntutorial.com/">http://markdowntutorial.com/</a>. There&#39;s more on markdown <a href="https://daringfireball.net/projects/markdown/">here</a>.</p>
+<p>When you run docpad it will convert your markdown to HTML.</p>
+<p>So let&#39;s have a look at a kind of Hello World post that I&#39;ll call hello-world.html.md</p>
+<pre class="highlight"><code class="hljs markdown">---
+title: "Hello World"
+cover: '/img/hello-masthead.jpg'
+isPost: true
+active: true
+postDate: 'Tue Jan 26 2016'
+tags:
+<span class="hljs-section"> - hello-world
+---</span>
+
+<span class="xml"><span class="hljs-tag">&lt;<span class="hljs-name">h3</span>&gt;</span></span>Hello world<span class="xml"><span class="hljs-tag">&lt;/<span class="hljs-name">h3</span>&gt;</span></span>
+
+<span class="hljs-strong">**Hellooooo!!!!**</span>
+
+Bla bla bla
+
+</code></pre>
+<p>At the top you can see the YAML for the post. These values will be used to create a post object in the post collection and the values can be used for templating, filtering, building URLs etc. In the casper theme, you can see the title being overlaid upon the masthead image (/img/hello-masthead.jpg) and being used around the place the represent the post. Tags are used to help filter posts. You can add your own values to the YAML too of course and code the usage any way you like.</p>
+<p>After the YAML section you have your content. In the example above I show a HTML header tag being used with some markdown. This will ultimately be converted to a HTML file in the statically generated site.</p>
+<p>If you&#39;re going to be adding code snippets in your posts a useful plugin is the <a href="https://github.com/docpad/docpad-plugin-highlightjs">highlightjs plugin</a>.</p>
+<p>I love the dark them in the Sublime Text editor (even though I&#39;ve stopped using the editor for a while now). I decided to use that here so these are the steps I went through to add that them to my code snippets for this blog.</p>
+<pre class="highlight"><code class="hljs bash">docpad install highlightjs
+</code></pre>
+<p>Went here to see what my options are and what they look like: <a href="https://highlightjs.org/static/demo/">https://highlightjs.org/static/demo/</a></p>
+<p>The styles are all here: <a href="https://github.com/isagalaev/highlight.js/tree/8.0/src/styles">https://github.com/isagalaev/highlight.js/tree/8.0/src/styles</a></p>
+<p>Downloaded this file <a href="https://github.com/isagalaev/highlight.js/blob/8.0/src/styles/monokai_sublime.css">https://github.com/isagalaev/highlight.js/blob/8.0/src/styles/monokai_sublime.css</a> to my src/static/css directory.</p>
+<p>in src/layouts/default.html.eco I updated the style block</p>
+<pre class="highlight"><code class="hljs coffeescript">&lt;%- @getBlock(<span class="hljs-string">"styles"</span>).add(<span class="hljs-string">'/css/screen.css'</span>).add(<span class="hljs-string">'//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400'</span>).toHTML() %&gt;
+</code></pre>
+<p>To include the new file:</p>
+<pre class="highlight"><code class="hljs coffeescript">&lt;%- @getBlock(<span class="hljs-string">"styles"</span>).add(<span class="hljs-string">'/css/screen.css'</span>).add(<span class="hljs-string">'/css/monokai_sublime.css'</span>).add(<span class="hljs-string">'//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400'</span>).toHTML() %&gt;
+</code></pre>
+<p>The result being I get nice syntax colouring like this JavaScript below:</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">howDoILook</span>(<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">return</span> <span class="hljs-string">'you look beautiful!'</span>;
+}
+</code></pre>
+<p>There&#39;s a lot of styles to pick from and you are bound to find one you like. Syntax highlighting is important for the aesthetics of your blog. Maybe some hardcore developers who code review using email might be happy enough to read a blog post without it but most people these days won&#39;t even look at a page that doesn&#39;t style code a bit as they just take that little bit of extra effort to read.</p>
+<h3>Publishing the Blog</h3>
+
+<p>You can host your static site pretty much anywhere. I wanted a convenient way to publish my blog. Something I could perhaps have happen automatically on commit. I decided to use Github Pages for hosting my site. It&#39;s free and great for a static site.</p>
+<p>To get that working I used the <a href="https://github.com/docpad/docpad-plugin-ghpages">docpad ghpages plugin</a>. The docs on their page show all you need to do but I&#39;ll outline it here anyway.</p>
+<p>Install the plugin:</p>
+<pre class="highlight"><code class="hljs bash">docpad install ghpages
+</code></pre>
+<p>Create a repository for your blog on Github. I called mine <a href="https://github.com/ruairitobrien/ruairitobrien-blog">ruairitobrien-blog</a>. Then you need to create a Github repository that follows a particular naming convention to automatically become your Github Pages site i.e. Github will automatically serve up what&#39;s in that repository at <a href="http://www.{your-github-username}.github.io">http://www.{your-github-username}.github.io</a>. If you want your own URL for that you can but I&#39;m not covering that here. The repository just has to use the naming convention {your-github-username}.github.io. Mine is here: <a href="https://github.com/ruairitobrien/ruairitobrien.github.io">https://github.com/ruairitobrien/ruairitobrien.github.io</a></p>
+<p>Why do you need two repositories? Well, you don&#39;t really but you would need docpad to output all the generated static site stuff to the root of your project and that would be a bit messy. Better to continue letting docpad put everything in the &#39;out&#39; directory.</p>
+<p>To use the plugin, create a remote called target and set it to your Guthub user name as mentioned here in the docs:</p>
+<pre class="highlight"><code class="hljs bash">git remote add target https://github.com/username/username.github.io.git
+</code></pre>
+<p>So for me it was:</p>
+<pre class="highlight"><code class="hljs bash">git remote add target https://github.com/ruairitobrien/ruairitobrien.github.io.git
+</code></pre>
+<p>Then in docpad.js, make sure you configure the plugin in the plugins section:</p>
+<pre class="highlight"><code class="hljs javascript">ghpages: {
+    <span class="hljs-attr">deployRemote</span>: <span class="hljs-string">'target'</span>,
+    <span class="hljs-attr">deployBranch</span>: <span class="hljs-string">'master'</span>
+}
+</code></pre>
+<p>So we are telling the plugin to deploy the master branch to the remote repository that was set to target. This doesn&#39;t mean that you are deploying your actual code from your master branch to your Github Pages repository. The plugin initializes a git repository in your &#39;out&#39; directory, commits everything in the out directory and synchronizes that to your Github Pages repository.</p>
+<p>To deploy the app use this command:</p>
+<pre class="highlight"><code class="hljs bash">docpad deploy-ghpages --env static
+</code></pre>
+<p>You might like to set up some kind of continuous deployment with a CI tool (my favorite tool for that kind of stuff is <a href="http://codeship.io/">Codeship</a>) or a git hook. I won&#39;t go in to that now but perhaps in another post.</p>
+<h3>That&#39;s It</h3>
+
+<p>I hope you are convinced of the amazing simplicity and value of using a static site generator like docpad. The amount of time it saves and the sheer flexibility and freedom it offers makes it a great choice to get started and hopefully you&#39;ve found this useful. Thank you for reading!</p>
+<p>Please feel free to drop a comment below if you run in to any issues or have any feedback.</p>
+<p>Also, the entire code for my blog is here: <a href="https://github.com/ruairitobrien/ruairitobrien-blog">https://github.com/ruairitobrien/ruairitobrien-blog</a></p>
+
+    </section>
+
+      <div class="comments">
+          <div id="disqus_thread"></div>
+          <script>
+              var disqus_config = function () {
+                 // this.page.url = '/2016/02/to-make-a-blog'; // Replace PAGE_URL with your page's canonical URL variable
+                  this.page.identifier = '/2016/02/to-make-a-blog'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                  this.page.title = 'To Make a Blog';
+              };
+              (function () { // DON'T EDIT BELOW THIS LINE
+                  var d = document, s = d.createElement('script');
+
+                  s.src = '//ruairitobrien.disqus.com/embed.js';
+
+                  s.setAttribute('data-timestamp', +new Date());
+                  (d.head || d.body).appendChild(s);
+              })();
+          </script>
+      </div>
+
+
+    
+    <footer class="post-footer">
+
+      
+      <figure class="author-image">
+        <a class="img" href="" style="background-image: url(/img/rob.jpg)"><span class="hidden">Ruairi O'Brien's Picture</span></a>
+      </figure>
+      
+
+      <section class="author">
+        <h4><a href="">Ruairi O'Brien</a></h4>
+
+        
+        <p>Code. Code. Code. Family stuff. Play video games. Code.</p>
+        
+        <div class="author-meta">
+          
+          <span class="author-location icon-location">Cork, IE</span>
+          
+          
+        </div>
+      </section>
+
+      <section class="share">
+        <h4>Share this post</h4>
+        <a class="icon-twitter" href="https://twitter.com/intent/tweet?text=To%20Make%20a%20Blog&amp;url="
+          onclick="window.open(this.href + window.location.href, 'twitter-share', 'width=550,height=235');return false;">
+          <span class="hidden">Twitter</span>
+        </a>
+        <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u="
+          onclick="window.open(this.href + window.location.href, 'facebook-share','width=580,height=296');return false;">
+          <span class="hidden">Facebook</span>
+        </a>
+        <a class="icon-google-plus" href="https://plus.google.com/share?url="
+          onclick="window.open(this.href + window.location.href, 'google-plus-share', 'width=490,height=530');return false;">
+          <span class="hidden">Google+</span>
+        </a>
+      </section>
+
+    </footer>
+
+  </article>
+</main>
+
+<aside class="read-next">
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+      
+      
+        <a class="read-next-story prev" style="background-image: url(/img/heads/meeting.jpg)" href="/2016/03/about-communication">
+          <section class="post">
+            <h2>About Communication</h2>
+            <p>Over the years I have found that the debate about code standards in all programming languages is really never&hellip;</p>
+          </section>
+        </a>
+      
+    
+  
+</aside>
+
+      <footer class="site-footer clearfix">
+        <section class="copyright"><a href="http://realgorithm.io/">Realgorithm</a> &copy; 2019</section>
+        <section class="poweredby">Proudly published with <a href="https://docpad.org">Docpad</a></section>
+      </footer>
+
+    </div>
+    <script defer="defer"  src="//code.jquery.com/jquery-2.1.4.min.js"></script><script defer="defer"  src="/js/jquery.fitvids.js"></script><script defer="defer"  src="/js/index.js"></script>
+    <script id="dsq-count-scr" src="//ruairitobrien.disqus.com/count.js" async></script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-40607409-4', 'auto');
+      ga('send', 'pageview');
+    </script>
+
+  </body>
+</html>

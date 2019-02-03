@@ -1,0 +1,317 @@
+<p>I have decided to go full on ECMAScript 2015 aka ES6 (I&#39;ll call is ES2015). Here&#39;s the method I used to begin coding in it.</p>
+<p>Before I go any further, all the source for this post is here <a href="https://github.com/ruairitobrien/babel-workflow-example">https://github.com/ruairitobrien/babel-workflow-example</a> so it&#39;s up to you if you want to just pull that down and see how it works or follow along here.</p>
+<p>The down side to going full on ES2015 is the fact that not all browsers support it fully yet and some never will. Check out the <a href="https://kangax.github.io/compat-table/es6/">ES6 compatibility table</a>. It&#39;s hard to write an app that&#39;s supported absolutely everywhere and there&#39;s a lot to be said for keeping it simple, like <a href="http://motherfuckingwebsite.com/">this site</a> but if you want to write any reasonably complex app in JavaScript today, ES2015 <a href="https://www.stevefenton.co.uk/2012/11/compiling-vs-transpiling/">transpiling</a> to ES5 is probably the nicest way to go about it.</p>
+<p>So one good option for transpiling your ES2015 code to ES5 code is to use <a href="https://babeljs.io">Babel</a>. Not only does it have a cool name, Babel does a good job at keeping the converted code pretty neat and understandable. Another nice thing is that if you want to use React and JSX, Babel supports that too.</p>
+<p>This post is purely about allowing you to write ES6 code. I won&#39;t go in to the various other things you might want to do like minification.</p>
+<p>To follow along you must install nodeJs. Once that&#39;s installed use npm to install gulp globally.</p>
+<pre class="highlight"><code class="hljs bash">npm i -g gulp
+</code></pre>
+<p>Here are some things I tend to do when starting a new project. You may notice these commands are all in bash syntax. If you&#39;re a Windows user and have git installed, you can use git bash to follow along if you like or just do the windows equivalent.</p>
+<p>I&#39;ll create a directory and initialize both a git repository and a node project.</p>
+<pre class="highlight"><code class="hljs bash">mkdir babel-workflow-example &amp;&amp; <span class="hljs-built_in">cd</span> <span class="hljs-variable">$_</span>
+git init
+npm init
+</code></pre>
+<p><code>npm init</code> will ask you a few questions. Select the defaults by hitting enter all the way or else answer the questions as you like.</p>
+<p>Create a gulpfile and install gulp and gulp-babel and the es2015 preset transformation for babel. The instructions here are taken straight from <a href="https://babeljs.io/docs/setup/#gulp">the Babel site</a>.</p>
+<pre class="highlight"><code class="hljs bash">touch gulpfile.js
+npm i --save-dev gulp gulp-babel babel-preset-es2015
+</code></pre>
+<p>Write the .babelrc file.</p>
+<pre class="highlight"><code class="hljs bash"><span class="hljs-built_in">echo</span> <span class="hljs-string">'{ "presets": ["es2015"] }'</span> &gt; .babelrc
+</code></pre>
+<h3>Structure</h3>
+
+<p>Before we write our gulpfile let&#39;s decide on a little bit of a project structure. I&#39;ll follow this simple convention.</p>
+<ul>
+<li>client/js/ - the directory that will hold all our client side ES2015 source code.</li>
+<li>public/js/ - the location that our transpiled JavaScript code will go to.</li>
+<li>public/index.html - the main html file that our scripts will get loaded in to.</li>
+</ul>
+<p>The convention doesn&#39;t really matter. You can put this stuff wherever you want. If you choose a different structure you just need to update the paths that will be specified in the gulp file. I chose the convention I am using as it&#39;s simple for preprocessing and easy to add server side code to the project later.</p>
+<p>We will write our code in the &#39;client/js&#39; directory, have gulp watch those files and have Babel transform the files, outputting the ES5 code to the &#39;public/js&#39; directory. For ES2015 module support we will use <a href="http://browserify.org/">browserify</a>. There are other options such as <a href="https://webpack.github.io/">webpack</a>. Browserify and webpack are both very popular and it&#39;s worth learning about both so you can pick what fits your needs best. I am choosing browserify here because it works well with gulp and with the default <a href="http://www.commonjs.org/">commonjs</a> module system that babel uses so is one of the options with the least amount of setup required.</p>
+<h3>Gulping</h3>
+
+<p>OK, so let&#39;s get something working. We&#39;ll create some simple ES2015 code that outputs something to the console.</p>
+<p>I&#39;ll just call the first file main.js:</p>
+<pre class="highlight"><code class="hljs bash">mkdir -p client/js &amp;&amp; touch client/js/main.js
+</code></pre>
+<p>Stick this in your gulpfile.js (note we&#39;ll be changing this file a fair bit over the course of things)</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-keyword">var</span> gulp = <span class="hljs-built_in">require</span>(<span class="hljs-string">'gulp'</span>);
+<span class="hljs-keyword">var</span> babel = <span class="hljs-built_in">require</span>(<span class="hljs-string">'gulp-babel'</span>);
+
+gulp.task(<span class="hljs-string">'default'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+  <span class="hljs-keyword">return</span> gulp.src(<span class="hljs-string">'client/js/**/*.js'</span>)
+    .pipe(babel())
+    .pipe(gulp.dest(<span class="hljs-string">'public/js'</span>));
+});
+</code></pre>
+<p>The <a href="https://en.wikipedia.org/wiki/Glob_(programming)" target="_blank">glob</a> pattern I&#39;m using here <code>client/js/**/*.js</code> just says to process any files under client/js with a .js extension. It will also work on subdirectories there.</p>
+<p>Now we&#39;ll put together some ES2015 code. I&#39;m very new to ES2015 still so nothing too fancy. I&#39;ll just throw in some bits of the new language for demo purposes.</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ForWantOfANail</span> </span>{
+    <span class="hljs-keyword">constructor</span>() {
+        <span class="hljs-keyword">this</span>.wants = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Map</span>();
+        <span class="hljs-keyword">let</span> w = <span class="hljs-keyword">this</span>.wants;
+        w.set(<span class="hljs-string">'nail'</span>, <span class="hljs-string">'shoe'</span>);
+        w.set(<span class="hljs-string">'shoe'</span>, <span class="hljs-string">'horse'</span>);
+        w.set(<span class="hljs-string">'horse'</span>, <span class="hljs-string">'knight'</span>);
+        w.set(<span class="hljs-string">'knight'</span>, <span class="hljs-string">'battle'</span>);
+        w.set(<span class="hljs-string">'battle'</span>, <span class="hljs-string">'kingdom'</span>);
+    }
+
+    toString() {
+        <span class="hljs-keyword">var</span> forWantOfANailString = <span class="hljs-string">''</span>;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> [key, value] <span class="hljs-keyword">of</span> <span class="hljs-keyword">this</span>.wants) {
+            forWantOfANailString += <span class="hljs-string">`For want of a <span class="hljs-subst">${key}</span> the <span class="hljs-subst">${value}</span> was lost,\n`</span>;            
+        }
+        forWantOfANailString += <span class="hljs-string">'So a kingdom was lost—all for want of a nail.'</span>
+
+        <span class="hljs-keyword">return</span> forWantOfANailString;
+    }
+
+    toHtmlString() {
+        <span class="hljs-keyword">var</span> lineBreak = <span class="hljs-string">'&lt;br&gt;'</span>;
+        <span class="hljs-keyword">var</span> htmlString = <span class="hljs-string">''</span>;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> [key, value] <span class="hljs-keyword">of</span> <span class="hljs-keyword">this</span>.wants) {
+            htmlString += <span class="hljs-string">`For want of a <span class="hljs-subst">${key}</span> the <span class="hljs-subst">${value}</span> was lost,<span class="hljs-subst">${lineBreak}</span>`</span>;            
+        }
+        <span class="hljs-keyword">return</span> htmlString += <span class="hljs-string">'So a kingdom was lost, all for want of a nail.'</span>;
+    }
+}
+
+<span class="hljs-keyword">const</span> nail = <span class="hljs-keyword">new</span> ForWantOfANail();
+
+<span class="hljs-built_in">console</span>.log(nail.toString());
+</code></pre>
+<p>Pretty basic stuff but there&#39;s enough ES2015 to demonstrate what we need. It will print out an old proverb in the console when run. It also provides a method to get a HTML string of the proverb. This JavaScript, as it is, will not work in most browsers but is valid ES2015.</p>
+<p>Now you can try running <code>gulp</code> and, all going well, you will see a new file appear at <code>public/js/main.js</code>.</p>
+<p>You can test it out with node. Run this command.</p>
+<pre class="highlight"><code class="hljs bash">node public/js/main.js
+</code></pre>
+<p>You should see this.</p>
+<pre class="highlight"><code class="hljs livecodeserver">For want <span class="hljs-keyword">of</span> <span class="hljs-keyword">a</span> nail <span class="hljs-keyword">the</span> shoe was lost,
+For want <span class="hljs-keyword">of</span> <span class="hljs-keyword">a</span> shoe <span class="hljs-keyword">the</span> horse was lost,
+For want <span class="hljs-keyword">of</span> <span class="hljs-keyword">a</span> horse <span class="hljs-keyword">the</span> knight was lost,
+For want <span class="hljs-keyword">of</span> <span class="hljs-keyword">a</span> knight <span class="hljs-keyword">the</span> battle was lost,
+For want <span class="hljs-keyword">of</span> <span class="hljs-keyword">a</span> battle <span class="hljs-keyword">the</span> kingdom was lost,
+So <span class="hljs-keyword">a</span> kingdom was lost, all <span class="hljs-keyword">for</span> want <span class="hljs-keyword">of</span> <span class="hljs-keyword">a</span> nail.
+</code></pre><h3>In a Browser</h3>
+
+<p>Printing to the console is fine. The more recent versions of node already supports much of ES2015 and doesn&#39;t even need Babel for this. Now we&#39;ll look at a good workflow for using ES2015, with Babel, for frontend development.</p>
+<p>Create our main HTML file and import our main script to it.</p>
+<pre class="highlight"><code class="hljs bash">touch public/index.html
+</code></pre>
+<p>Put this HTML in it.</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">html</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">head</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">meta</span> <span class="hljs-attr">charset</span>=<span class="hljs-string">"UTF-8"</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">title</span>&gt;</span>Doing a bit of Babel<span class="hljs-tag">&lt;/<span class="hljs-name">title</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">head</span>&gt;</span>
+<span class="hljs-tag">&lt;<span class="hljs-name">body</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">div</span> <span class="hljs-attr">id</span>=<span class="hljs-string">"output"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+    <span class="hljs-tag">&lt;<span class="hljs-name">script</span> <span class="hljs-attr">src</span>=<span class="hljs-string">"js/main.js"</span>&gt;</span><span class="undefined"></span><span class="hljs-tag">&lt;/<span class="hljs-name">script</span>&gt;</span>    
+<span class="hljs-tag">&lt;/<span class="hljs-name">body</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">html</span>&gt;</span>
+</code></pre>
+<p>Add this to the end of the main.js files:</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'output'</span>).innerHTML = nail.toHtmlString();
+</code></pre>
+<p>You could open the index.html file up directly in a browser but that&#39;s no good really. What we want is to have the file served up on localhost. There are a great many ways to accomplish this but if all you want to do is get coding quickly, try out <a href="https://www.browsersync.io/">browsersync</a>. It will serve up a directory of your choice for you and any time you make a change, you can have the browser automatically refresh. If you&#39;ve used all this before, great, you understand the benefits. If you haven&#39;t then you will probably lament all that time you waisted refreshing the browser before. I really dislike working on a (browser based) codebase that doesn&#39;t use use something like browsersync or livereload. I even use browsersync for electron based apps.</p>
+<p>To set this up is really simple. Looking at the doc <a href="https://www.browsersync.io/docs/gulp/">here</a>, all we have to do is install:</p>
+<pre class="highlight"><code class="hljs bash">npm i --save-dev browser-sync
+</code></pre>
+<p>Modify the gulpfile to use it:</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-keyword">var</span> gulp = <span class="hljs-built_in">require</span>(<span class="hljs-string">'gulp'</span>);
+<span class="hljs-keyword">var</span> babel = <span class="hljs-built_in">require</span>(<span class="hljs-string">'gulp-babel'</span>);
+<span class="hljs-keyword">var</span> browserSync = <span class="hljs-built_in">require</span>(<span class="hljs-string">'browser-sync'</span>).create();
+
+gulp.task(<span class="hljs-string">'build'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> gulp.src(<span class="hljs-string">'client/js/**/*.js'</span>)
+        .pipe(babel())
+        .pipe(gulp.dest(<span class="hljs-string">"public/js"</span>));
+});
+
+gulp.task(<span class="hljs-string">'serve'</span>, [<span class="hljs-string">'build'</span>], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    browserSync.init({
+        <span class="hljs-attr">server</span>: {
+            <span class="hljs-attr">baseDir</span>: <span class="hljs-string">'./public'</span>
+        }
+    });
+});
+
+gulp.task(<span class="hljs-string">'default'</span>, [<span class="hljs-string">'serve'</span>]);
+
+</code></pre>
+<p>We&#39;re just gong to use the browserSync static server.</p>
+<p>If you have your own server already, such as an express app for example, you can proxy that through browserSync instead. So if your app starts up on <a href="http://localhost:3000">http://localhost:3000</a>, change the browserSync.init call to this:</p>
+<pre class="highlight"><code class="hljs javascript">browserSync.init({
+        <span class="hljs-attr">proxy</span>: <span class="hljs-string">'http://localhost:3000'</span>
+    });
+</code></pre>
+<p>So, anyway, now if you run <code>gulp</code>, all going well a browser window should open and you should see the old proverb printed on the page.</p>
+<p>We nearly have a good workflow now. We can write ES2015 code, run gulp and have the browser open with running our transpiled code.</p>
+<p>There&#39;s a few more really important bits left to do though. Ideally we would write code, even add files and have everything running in the browser immediately with no updating of the html file to reference new scripts and and no need to start and stop the gulp process. Achieving that is pretty simple too. Here&#39;s how.</p>
+<h3>Automating Your Troubles Away</h3>
+
+<p>Let&#39;s put a watch on our ES2015 code. I&#39;ll show the entire gulpfile once we&#39;re done but I&#39;ll explain what we&#39;re adding a little first. In the gulp serve task, we will add a watch on all JavaScript files under <code>client/js</code> so that any time we make a change the code will automatically get transpiled.</p>
+<pre class="highlight"><code class="hljs javascript">gulp.watch(<span class="hljs-string">'client/js/**/*.js'</span>, [<span class="hljs-string">'build'</span>]);
+</code></pre>
+<p>Then add a watch to the public directory so that any changes will automatically reload the browser.</p>
+<pre class="highlight"><code class="hljs javascript">gulp.watch(<span class="hljs-string">'public/**'</span>).on(<span class="hljs-string">'change'</span>, browserSync.reload)    
+</code></pre>
+<p>After a JavaScript build happens, the watch on the public directory will kick in since the build will have updated the public JavaScript file. As your project grows you may want to look at more efficient ways to watch files but the above method is perfectly fine in most simple cases and I wouldn&#39;t worry about it unless performance actually becomes an issue. You might also want to look at <a href="https://github.com/substack/watchify">watchify</a> but there was no need for an extra library here.</p>
+<h3>Modules</h3>
+
+<p>Finally we will take a quick look at modules. Originally I had planned on using something like <a href="https://www.npmjs.com/package/wiredep">gulp-wiredep</a> and <a href="https://www.npmjs.com/package/gulp-inject">gulp-inject</a> as a nice way to deal with adding more JavaScript files and not having to worry about adding those pesky script tags to your HTML. They are great for that and I highly recommend you take a look at them but it occurred to me that there&#39;s a better way now with ES2015 to manage this and it&#39;s called modules. Well, in this case it&#39;s the plugin we will use to implement modules. As I mentioned earlier, we are going to use <a href="http://browserify.org/">browserify</a> here. The result of using modules with this plugin is similar to what you might do when pre-processing JavaScript for production by concatenating all your JavaScript files except better in many ways which hopefully will be evident once you see how it works.</p>
+<p>So we add a new file:</p>
+<pre class="highlight"><code class="hljs bash">touch client/js/forWantOfANail.js
+</code></pre>
+<p>Cut the ForWantOfANail class from client/js/main.js and paste it in to the new file.
+Then export the class so client/js/forWantOfANail.js should look like this:</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-keyword">export</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">ForWantOfANail</span> </span>{
+    <span class="hljs-keyword">constructor</span>() {
+        <span class="hljs-keyword">this</span>.wants = <span class="hljs-keyword">new</span> <span class="hljs-built_in">Map</span>();
+        <span class="hljs-keyword">let</span> w = <span class="hljs-keyword">this</span>.wants;
+        w.set(<span class="hljs-string">'nail'</span>, <span class="hljs-string">'shoe'</span>);
+        w.set(<span class="hljs-string">'shoe'</span>, <span class="hljs-string">'horse'</span>);
+        w.set(<span class="hljs-string">'horse'</span>, <span class="hljs-string">'knight'</span>);
+        w.set(<span class="hljs-string">'knight'</span>, <span class="hljs-string">'battle'</span>);
+        w.set(<span class="hljs-string">'battle'</span>, <span class="hljs-string">'kingdom'</span>);
+    }
+
+    toString() {
+        <span class="hljs-keyword">var</span> forWantOfANailString = <span class="hljs-string">''</span>;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> [key, value] <span class="hljs-keyword">of</span> <span class="hljs-keyword">this</span>.wants) {
+            forWantOfANailString += <span class="hljs-string">`For want of a <span class="hljs-subst">${key}</span> the <span class="hljs-subst">${value}</span> was lost,\n`</span>;            
+        }
+        forWantOfANailString += <span class="hljs-string">'So a kingdom was lost—all for want of a nail.'</span>
+
+        <span class="hljs-keyword">return</span> forWantOfANailString;
+    }
+
+    toHtmlString() {
+        <span class="hljs-keyword">var</span> lineBreak = <span class="hljs-string">'&lt;br&gt;'</span>;
+        <span class="hljs-keyword">var</span> htmlString = <span class="hljs-string">''</span>;
+        <span class="hljs-keyword">for</span> (<span class="hljs-keyword">var</span> [key, value] <span class="hljs-keyword">of</span> <span class="hljs-keyword">this</span>.wants) {
+            htmlString += <span class="hljs-string">`For want of a <span class="hljs-subst">${key}</span> the <span class="hljs-subst">${value}</span> was lost,<span class="hljs-subst">${lineBreak}</span>`</span>;            
+        }
+        <span class="hljs-keyword">return</span> htmlString += <span class="hljs-string">'So a kingdom was lost, all for want of a nail.'</span>;
+    }
+}
+</code></pre>
+<p>And your client/js/main.js should look like this:</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-keyword">import</span> {ForWantOfANail} <span class="hljs-keyword">from</span> <span class="hljs-string">'./forWantOfANail.js'</span>;
+
+<span class="hljs-keyword">const</span> nail = <span class="hljs-keyword">new</span> ForWantOfANail();
+
+<span class="hljs-built_in">console</span>.log(nail.toString());
+
+<span class="hljs-comment">// If running in a browser, print the profound proverb to the output element</span>
+<span class="hljs-keyword">if</span> (<span class="hljs-keyword">typeof</span> <span class="hljs-built_in">document</span> !== <span class="hljs-string">'undefined'</span>)
+    <span class="hljs-built_in">document</span>.getElementById(<span class="hljs-string">'output'</span>).innerHTML = nail.toHtmlString()
+</code></pre>
+<p>Note the import statement at the top and the fact that the file reference is relative to main.js.</p>
+<p>Now if you run</p>
+<pre class="highlight"><code class="hljs bash">gulp build &amp;&amp; node public/js/main.js
+</code></pre>
+<p>you should see something like this:</p>
+<pre class="highlight"><code class="hljs stylus">[<span class="hljs-number">23</span>:<span class="hljs-number">39</span>:<span class="hljs-number">55</span>] Starting <span class="hljs-string">'build'</span>...
+[<span class="hljs-number">23</span>:<span class="hljs-number">39</span>:<span class="hljs-number">56</span>] Finished <span class="hljs-string">'build'</span> after <span class="hljs-number">336</span> ms
+For want of <span class="hljs-selector-tag">a</span> nail the shoe was lost,
+For want of <span class="hljs-selector-tag">a</span> shoe the horse was lost,
+For want of <span class="hljs-selector-tag">a</span> horse the knight was lost,
+For want of <span class="hljs-selector-tag">a</span> knight the battle was lost,
+For want of <span class="hljs-selector-tag">a</span> battle the kingdom was lost,
+So <span class="hljs-selector-tag">a</span> kingdom was lost, all <span class="hljs-keyword">for</span> want of <span class="hljs-selector-tag">a</span> nail.
+</code></pre><p>Pretty cool but if you just run <code>gulp</code> you&#39;ll be presented with a blank page in the browser. The reason for that is the browser doesn&#39;t know about your modules. To be more precise, it doesn&#39;t know about the file public/js/forWantOfANail.js.</p>
+<p>The default module loader specification that babel used is CommonJS. Same <code>require</code> syntax as node if you&#39;re familiar with that.</p>
+<p>So at this point we need to modify the gulpfile a bit to bundle our module files and install a few dependencies and then we&#39;re done. Here&#39;s a command to quickly install all that you need:</p>
+<pre class="highlight"><code class="hljs bash">npm i babelify browserify gulp-sourcemaps vinyl-source-stream vinyl-buffer --save-dev
+</code></pre>
+<p>If you were following along before and installed <code>gulp-babel</code>, you can remove it now if you wish <code>npm uninstall gulp-babel -D</code></p>
+<p>Babelify is there to help us use babel and browserify together easily.</p>
+<p>gulp-sourcemaps is to help us build sourcemaps which we kind of need now since we&#39;re bundling everything in to one file.</p>
+<p><a href="https://www.npmjs.com/package/vinyl-source-stream">vinyl-source-stream</a> is about converting streams for gulp. This <a href="http://stackoverflow.com/questions/30794356/why-do-i-have-to-use-vinyl-source-stream-with-gulp">SO answer</a> is good if you want more info on that.</p>
+<p><a href="https://www.npmjs.com/package/vinyl-buffer">vinyl-buffer</a> is another tool along those lines for simplifying stream usage. Checkout their npm page for more on that.</p>
+<p>And finally we can change our gulpfile to look like this:</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-keyword">var</span> path = <span class="hljs-built_in">require</span>(<span class="hljs-string">'path'</span>);
+<span class="hljs-keyword">var</span> gulp = <span class="hljs-built_in">require</span>(<span class="hljs-string">'gulp'</span>);
+<span class="hljs-keyword">var</span> babelify = <span class="hljs-built_in">require</span>(<span class="hljs-string">'babelify'</span>)
+<span class="hljs-keyword">var</span> browserify = <span class="hljs-built_in">require</span>(<span class="hljs-string">'browserify'</span>);
+<span class="hljs-keyword">var</span> sourcemaps = <span class="hljs-built_in">require</span>(<span class="hljs-string">'gulp-sourcemaps'</span>);
+<span class="hljs-keyword">var</span> source = <span class="hljs-built_in">require</span>(<span class="hljs-string">'vinyl-source-stream'</span>);
+<span class="hljs-keyword">var</span> buffer = <span class="hljs-built_in">require</span>(<span class="hljs-string">'vinyl-buffer'</span>);
+<span class="hljs-keyword">var</span> browserSync = <span class="hljs-built_in">require</span>(<span class="hljs-string">'browser-sync'</span>).create();
+
+
+<span class="hljs-comment">/**
+ * Most values specific to this particular project is contained here.
+ */</span>
+<span class="hljs-keyword">var</span> gulpOptions = {
+    <span class="hljs-attr">jsMain</span>: <span class="hljs-string">'main.js'</span>,
+    <span class="hljs-attr">jsSourceDir</span>: __dirname + <span class="hljs-string">'/client/js'</span>,
+    <span class="hljs-attr">jsOutDir</span>: __dirname + <span class="hljs-string">'/public/js'</span>,
+    <span class="hljs-attr">server</span>: {
+        <span class="hljs-attr">baseDir</span>: <span class="hljs-string">'./public'</span>
+    }
+}
+
+<span class="hljs-comment">/**
+ * Get a bundler that will use browserify to process modules and babel to transpile ES6 code.
+ *
+ * @param source the entry point script to be bundled
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">getBuilder</span>(<span class="hljs-params">source</span>) </span>{
+    <span class="hljs-keyword">return</span> browserify(source, { <span class="hljs-attr">debug</span>: <span class="hljs-literal">true</span> }).transform(babelify);
+}
+
+<span class="hljs-comment">/**
+ * Pre-process and bundle up all the front end stuff
+ *
+ * @param builder - the configured bundler to use for building
+ * @param options - configuration options for building frontend assets
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">build</span>(<span class="hljs-params">builder, options</span>) </span>{
+    <span class="hljs-keyword">return</span> builder.bundle()
+        .pipe(source(options.jsMain))
+        .pipe(buffer())
+        .pipe(sourcemaps.init({ <span class="hljs-attr">loadMaps</span>: <span class="hljs-literal">true</span> }))
+        .pipe(sourcemaps.write(<span class="hljs-string">'./'</span>))
+        .pipe(gulp.dest(options.jsOutDir));
+}
+
+<span class="hljs-comment">/**
+ * Serve up the front end which in this case just initializes browser sync
+ *
+ * @param options - configuration options for serving up web assets
+ */</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">serve</span>(<span class="hljs-params">options</span>) </span>{
+    <span class="hljs-keyword">return</span> browserSync.init(options);
+}
+
+gulp.task(<span class="hljs-string">'build'</span>, <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">var</span> builder = getBuilder(path.join(gulpOptions.jsSourceDir, gulpOptions.jsMain));
+    <span class="hljs-keyword">return</span> build(builder, gulpOptions);
+});
+
+gulp.task(<span class="hljs-string">'serve'</span>, [<span class="hljs-string">'build'</span>], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    <span class="hljs-keyword">return</span> serve(gulpOptions);
+});
+
+gulp.task(<span class="hljs-string">'serve-watch'</span>, [<span class="hljs-string">'build'</span>], <span class="hljs-function"><span class="hljs-keyword">function</span> (<span class="hljs-params"></span>) </span>{
+    serve(gulpOptions);
+    gulp.watch(<span class="hljs-string">'client/js/**/*.js'</span>, [<span class="hljs-string">'build'</span>]);
+    gulp.watch(<span class="hljs-string">'public/**'</span>).on(<span class="hljs-string">'change'</span>, browserSync.reload)
+});
+
+gulp.task(<span class="hljs-string">'default'</span>, [<span class="hljs-string">'serve-watch'</span>]);
+</code></pre>
+<p>The gulpfile has gotten a little more complicated but hopefully it all makes sense to you.</p>
+<p>The build function is the main thing there. It uses babelify &amp; browserify to bundle the ES2015 code in to a single ES5 script file. It resolves what files need to be bundled by processing the import statements in your code. Any file that isn&#39;t referenced will not end up in the output. It pipes the outputs through the sourcemap builder and then writes everything to the public/js directory. &#39;Everything&#39; being a single main.js file and a corresponding main.js.map file that your browser can use to make debugging easier when developing. The sourcemaps processor we&#39;re using takes care of the map referencing by adding this comment to the end of the main.js: <code>//# sourceMappingURL=main.js.map</code>.</p>
+<p>More on sourcemaps <a href="https://developer.mozilla.org/en-US/docs/Tools/Debugger/How_to/Use_a_source_map">here</a> and <a href="https://github.com/ryanseddon/source-map/wiki/Source-maps%3A-languages,-tools-and-other-info">here</a>.</p>
+<p>The <code>gulp serve</code> task will build and serve everything and then exit the gulp process.</p>
+<p>If you just run <code>gulp</code> you can see that the <code>serve-watch</code> task is called that will build and serve but also watch all the specified files for changes. The gulp task will not exit in that case until you tell it to.</p>
+<p>Using the watch task you can develop with very quick feedback and minimum distraction. All assets will build automatically and the browser will automatically refresh on every change. You will probably want to add a test runner in there and have your tests run on every change too. That is easy to accomplish with the methods outlined in the gulpfile above. For example you might do</p>
+<pre class="highlight"><code class="hljs javascript">gulp.watch(<span class="hljs-string">'client/js/**/*.js'</span>, [<span class="hljs-string">'test'</span>]);
+</code></pre>
+<p>Hope you found this useful and if like me you were hesitant to begin using ES2015, I hope this will help you begin that journey. Good luck and thanks for reading.</p>

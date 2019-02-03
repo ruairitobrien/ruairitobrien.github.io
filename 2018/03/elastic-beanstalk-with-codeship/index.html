@@ -1,0 +1,370 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Deploying an app to Elastic Beanstalk with Codeship | Realgorithm</title>
+    <meta name="description" content="How to Win Programs and Influence Code." />
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link  rel="stylesheet" href="/css/screen.css" /><link  rel="stylesheet" href="/css/monokai_sublime.css" /><link  rel="stylesheet" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+    <meta name="generator" content="Docpad 6.x" />
+    <link rel="alternate" type="application/rss+xml" title="Realgorithm" href="/rss.xml" />
+    <style type="text/css">
+      #mc_embed_signup{clear:left; font:14px Helvetica,Arial,sans-serif; color: #fff}
+      #mc_embed_signup_scroll > h2 {color: #fff}
+    </style>
+  </head>
+  <body class="post-template nav-closed">
+    <div class="nav">
+    <h3 class="nav-title">Menu</h3>
+    <a href="#" class="nav-close">
+      <span class="hidden">Close</span>
+    </a>
+    <ul>
+      
+        <li class="nav-any" role="presentation">
+          <a href="/">Home</a>
+        </li>
+      
+        <li class="nav-any" role="presentation">
+          <a href="/about.html">About</a>
+        </li>
+      
+    </ul>
+    <a class="subscribe-button icon-feed" href="/rss.xml">Subscribe With RSS</a>
+</div>
+<span class="nav-cover"></span>
+
+    <div class="site-wrapper">
+
+      <header class="main-header post-head" style="background-image: url(/img/heads/beanstalk.jpg)">
+  <nav class="main-nav overlay clearfix">
+    
+    <a class="blog-logo" href="http://realgorithm.io/"><img src="/img/logo.png" alt="Realgorithm" /></a>
+       
+  </nav>
+</header>
+
+<main class="content" role="main">
+  <article class="post">
+
+    <header class="post-header">
+      <h1 class="post-title">Deploying an app to Elastic Beanstalk with Codeship</h1>
+      <section class="post-meta">
+        
+        <time class="post-date" datetime="2018-March-26">26 March 2018</time> 
+  <a href="/tags/aws.html">aws</a>, 
+
+  <a href="/tags/codeship.html">codeship</a>, 
+
+  <a href="/tags/cd.html">cd</a>
+
+      </section>
+    </header>
+    
+    <section class="post-content">
+      <p>Codeship provides some docs on how to set up a deployment to AWS (Amazon Web Services) EB (Elastic Beanstalk) <a href="https://documentation.codeship.com/basic/continuous-deployment/deployment-to-elastic-beanstalk/">here</a>. I didn&#39;t find them great since they assumed a lot of knowledge I didn&#39;t have. I know I&#39;ll have to do this again so here I am writing down all the steps I had to follow to get this to work. </p>
+<p><em>Disclaimer: I can&#39;t claim any of this is best practice. Just what I figured out as I went along. I don&#39;t run critical large scale applications on AWS. Just simple apps and side projects. If you see mistakes or things that could be done better, it would be amazing if you could comment and let me know.</em></p>
+<p>For this first step I will be deploying a simple nodejs application using the pre-configured Node.js platform on EB. The instructions should be basically the same for any other platform on EB though.</p>
+<h2 id="assumptions">Assumptions</h2>
+<ul>
+<li>You&#39;re using Codeship or some other similar CI (Continuous Integration) system (that system should allow you to configure an EB deployment as we won&#39;t be looking in to how to deploy with the aws tools directly).</li>
+<li>You have an <a href="http://aws.amazon.com">AWS</a> account and are aware of pricing etc. If you&#39;re in your free trial this should all be free but might cost you a little otherwise.</li>
+<li>You have the ability to add a user with <a href="https://aws.amazon.com/iam/">IAM</a>.</li>
+<li>You can create an EB application.</li>
+</ul>
+<h2 id="checklist">Checklist</h2>
+<p>Here&#39;s the steps we will have gone through by the end of this post.</p>
+<ol>
+<li>Create an Elastic Beanstalk application &amp; environment</li>
+<li>Configure IAM with a deployment user and user group</li>
+<li>Configure a deployment pipeline</li>
+</ol>
+<p>I am going to use the AWS UI for all this. </p>
+<p><strong>Account ID and region</strong></p>
+<p>When working with AWS there are 2 values you will have that will likely be different to what I have here. Your account ID and your region. For the rest of this post, rather than calling out these in each place I am just going to use these values:</p>
+<p>AccountID: <code>123456789123</code>
+Region: <code>eu-west-1</code></p>
+<p>In all the examples I have, just replace these values with your own. </p>
+<p>You can find your account ID by selecting the dropdown with your name on the top right and viewing you account which should be at this URL: <a href="https://console.aws.amazon.com/billing/home?#/account">https://console.aws.amazon.com/billing/home?#/account</a></p>
+<h2 id="1-create-an-elastic-beanstalk-application-environment">1. Create an Elastic Beanstalk application &amp; environment</h2>
+<p>Go to your console and select Elastic Beanstalk in the services section. If your currently selected region is eu-west-1 and this is your first time creating an EB app, you will end up at a URL like this <a href="https://eu-west-1.console.aws.amazon.com/elasticbeanstalk/home?region=eu-west-1#/getting_started">https://eu-west-1.console.aws.amazon.com/elasticbeanstalk/home?region=eu-west-1#/getting_started</a></p>
+<p>Don&#39;t use the default stuff in there. Instead use the <code>Create New Application</code> link on the top right. </p>
+<p>If it&#39;s not your first time creating one, click the create new app link anyway to follow along.</p>
+<p>You will see a dialog prompting you to enter application details. Enter whatever you want there.</p>
+<p><img src="/img/eb/01-my-test-app.png" alt="my-test-app"></p>
+<p>You will end up at the screen listing any application you have created. </p>
+<p><img src="/img/eb/02-appllications-view-create-one.png" alt="appllications-view-create-one"></p>
+<p>Select the option to create a new environment for your application, either in the Actions dropdown or by clicking the <code>Create one now</code> link.</p>
+<p>Choose the Web Server option.</p>
+<p><img src="/img/eb/03-choose-env.png" alt="choose-env"></p>
+<p>Fill in the form.</p>
+<p>For this example we will use the Node.js pre-configured platform. You can use the Sample application option for Application code. We will overwrite that soon.</p>
+<p><img src="/img/eb/04-new-env-form.png" alt="new-env-form"></p>
+<p>Click the Create button and wait for you environment to be created.</p>
+<p><img src="/img/eb/05-env-creating.png" alt="env-creating"></p>
+<p>This will take a while to complete. </p>
+<p>AWS provides you with a public URL (as you saw in the create env form) so once your environment is up an running you can access it in the browser. In my case I saw this.</p>
+<p><img src="/img/eb/06-sample-app.png" alt="sample-app"></p>
+<p>If you go back to the EB view you can see the application health and there&#39;s even a button to upload new code to EB. If you didn&#39;t want a deployment pipeline you could just use that button.</p>
+<h3 id="optional-add-rds">Optional - add RDS</h3>
+<p>Just to go over how to add and use another service in EB, we will add a MySQL database to our app. This will be similar for whatever else you might want to add. I only picked RDS with MySQL since it&#39;s very simple. </p>
+<p>Go to the configuration tab for you application.</p>
+<p><img src="/img/eb/07-eb-config-tab.png" alt="eb-config-tab"></p>
+<p>Scroll down for the database card and click <code>Modify</code>. You will be presented with a form to create a new database. You can fill in the form similarly to how I have below. I have chosen the cheapest options as I will be deleting all this soon after.</p>
+<p><img src="/img/eb/08-db-config.png" alt="db-config"></p>
+<p>Once you click Save, be sure to click Apply on the next screen.</p>
+<p>Worth noting, if you already have a database in AWS, you can bind that instead of creating a new one if you wish.</p>
+<p>You can also just access any database from your app as normal but there are some advantages to using the binding in EB. One being that you get some environment variables injected so that your app can use them to connect to the database </p>
+<p>For RDS these are:</p>
+<pre class="highlight"><code class="hljs nginx"><span class="hljs-attribute">RDS_HOSTNAME</span>
+RDS_PORT
+RDS_USERNAME
+RDS_PASSWORD
+RDS_DB_NAME
+</code></pre><p>For other services you get similar things so it&#39;s really handy. You don&#39;t need to worry about securely distributing credentials to your application yourself.</p>
+<h3 id="step-1-done">Step 1 done</h3>
+<p>Now we have our EB application ready to use. This will have created an EC2 instance to host our application with Node.js setup. We also happen to have a load balancer and auto-scaling which are nice things to have although we won&#39;t use them here. You could have chosen a single instance deployment too.</p>
+<p>Next we&#39;ll look at setting up a user and user group to allow our CI system permissions for deploying our application.</p>
+<h2 id="2-configure-iam-with-a-deployment-user-and-user-group">2. Configure IAM with a deployment user and user group</h2>
+<p>For this we want to create a user group that has the correct permissions to deploy to our EB application. We will create a user for CodeShip to use. We will also set up some policies that give just enough permissions for that user group. </p>
+<p>In this section we will:</p>
+<ul>
+<li>Create a policy for S3 access</li>
+<li>Create a policy for EB access</li>
+<li>Create a deployment user group and attach the policies we created</li>
+<li>Create a deployment user for CodeShip and add them to the deployment user group</li>
+</ul>
+<h3 id="create-a-policy-for-eb-access">Create a policy for EB access</h3>
+<p>Go to the <a href="https://console.aws.amazon.com/iam/home">IAM</a> service in your AWS console. Click on the <code>Policies</code> link on the left.</p>
+<p><img src="/img/eb/09-policies-page.png" alt="policies-page"></p>
+<p>Click the <code>Create Policy</code> button. Select the JSON tab like below. </p>
+<p><img src="/img/eb/10-iam-policy.png" alt="iam-policy"></p>
+<p>Insert the following JSON, replacing my region and account ID with yours.</p>
+<pre class="highlight"><code class="hljs json">{
+    <span class="hljs-attr">"Version"</span>: <span class="hljs-string">"2012-10-17"</span>,
+    <span class="hljs-attr">"Statement"</span>: [
+        {
+            <span class="hljs-attr">"Effect"</span>: <span class="hljs-string">"Allow"</span>,
+            <span class="hljs-attr">"Action"</span>: [
+                <span class="hljs-string">"autoscaling:ResumeProcesses"</span>,
+                <span class="hljs-string">"elasticloadbalancing:RegisterTargets"</span>,
+                <span class="hljs-string">"autoscaling:SuspendProcesses"</span>,
+                <span class="hljs-string">"elasticloadbalancing:DeregisterTargets"</span>,
+                <span class="hljs-string">"elasticbeanstalk:CreateApplicationVersion"</span>,
+                <span class="hljs-string">"elasticbeanstalk:DeleteApplicationVersion"</span>,
+                <span class="hljs-string">"ec2:DescribeImages"</span>,
+                <span class="hljs-string">"elasticbeanstalk:DescribeEnvironments"</span>,
+                <span class="hljs-string">"autoscaling:DescribeScalingActivities"</span>,
+                <span class="hljs-string">"autoscaling:DescribeAutoScalingGroups"</span>,
+                <span class="hljs-string">"elasticloadbalancing:DescribeTargetHealth"</span>,
+                <span class="hljs-string">"elasticbeanstalk:UpdateEnvironment"</span>,
+                <span class="hljs-string">"elasticloadbalancing:DescribeInstanceHealth"</span>,
+                <span class="hljs-string">"ec2:DescribeKeyPairs"</span>,
+                <span class="hljs-string">"elasticloadbalancing:DeregisterInstancesFromLoadBalancer"</span>,
+                <span class="hljs-string">"elasticloadbalancing:RegisterInstancesWithLoadBalancer"</span>
+            ],
+            <span class="hljs-attr">"Resource"</span>: <span class="hljs-string">"*"</span>
+        },
+        {
+            <span class="hljs-attr">"Effect"</span>: <span class="hljs-string">"Allow"</span>,
+            <span class="hljs-attr">"Action"</span>: [
+                <span class="hljs-string">"sns:ListSubscriptionsByTopic"</span>,
+                <span class="hljs-string">"sns:GetTopicAttributes"</span>,
+                <span class="hljs-string">"sns:CreateTopic"</span>,
+                <span class="hljs-string">"cloudformation:DescribeStackResources"</span>,
+                <span class="hljs-string">"s3:CreateBucket"</span>,
+                <span class="hljs-string">"s3:ListBucket"</span>,
+                <span class="hljs-string">"cloudformation:DescribeStackResource"</span>,
+                <span class="hljs-string">"s3:GetBucketPolicy"</span>,
+                <span class="hljs-string">"s3:PutObject"</span>,
+                <span class="hljs-string">"s3:GetObjectAcl"</span>,
+                <span class="hljs-string">"s3:GetObject"</span>,
+                <span class="hljs-string">"cloudformation:GetTemplate"</span>,
+                <span class="hljs-string">"cloudformation:UpdateStack"</span>,
+                <span class="hljs-string">"sns:Subscribe"</span>,
+                <span class="hljs-string">"s3:DeleteObject"</span>,
+                <span class="hljs-string">"s3:PutObjectAcl"</span>
+            ],
+            <span class="hljs-attr">"Resource"</span>: [
+                <span class="hljs-string">"arn:aws:sns:eu-west-1:123456789123:*"</span>,
+                <span class="hljs-string">"arn:aws:s3:::elasticbeanstalk-eu-west-1-123456789123"</span>,
+                <span class="hljs-string">"arn:aws:s3:::elasticbeanstalk-eu-west-1-123456789123/*"</span>,
+                <span class="hljs-string">"arn:aws:cloudformation:eu-west-1:123456789123:*"</span>
+            ]
+        }
+    ]
+}
+</code></pre><p>Click review policy and fill out the next form. Fill in detail that make sense to you and will make it easy to find the policy later.</p>
+<p><img src="/img/eb/11-eb-iam-review.png" alt="eb-iam-review"></p>
+<h3 id="create-a-deployment-user">Create a deployment user</h3>
+<p>In the IAM console, click the Users link on the left menu and click the Add user button. </p>
+<p>Create a user to use in your CI system (I am calling mine codeship-deployer since I am using CodeShip). Select the Programmatic access option.</p>
+<p><img src="/img/eb/12-new-user.png" alt="new-user"></p>
+<h3 id="create-a-deployment-user-group">Create a deployment user group</h3>
+<p>Rather than give the user permissions directly, it can make sense to use a user group instead. This makes life a little easier if you end up wanting to add more CI systems with their own users or something like that.</p>
+<p>In the IAM console, click the Groups option on the left. Click the Create New Group button. </p>
+<p>Give the group a sensible name. I just called mine Deployment. </p>
+<p>In the user group menu, select the Permissions tab and click Attach Policy. </p>
+<p><img src="/img/eb/13-attach-policy.png" alt="attach-policy"></p>
+<p>Find the policies we created earlier and attach them.</p>
+<p><img src="/img/eb/14-policies-to-add.png" alt="policies-to-add"></p>
+<h3 id="access-keys">Access Keys</h3>
+<p>Before we go on to the next step, you will need to get access keys for the user we created. For this, select the user by clicking on any hyperlink with the user name or navigating to the user in the users menu. Select the Security credentials tab for the user You should end up at a URL like this <a href="https://console.aws.amazon.com/iam/home?region=eu-west-1#/users/codeship-deployer?section=security_credentials">https://console.aws.amazon.com/iam/home?region=eu-west-1#/users/codeship-deployer?section=security_credentials</a></p>
+<p>Click on <code>Create Access Key</code>. You will be shown an Access key ID and Secret access key. Keep this for the next step where we will configure our pipeline and will have to provide these keys.</p>
+<p><img src="/img/eb/15-keys.png" alt="keys"></p>
+<h2 id="3-configure-a-deployment-pipeline-with-codeship">3. Configure a deployment pipeline with CodeShip</h2>
+<p>I will be using CodeShip specifically here but I guess the instructions would be reasonably similar for other tools too. I am going to assume you have a project setup and all you have left to do is configure a deployment. Select the deploy option in project settings and select Amazon ELastic Beanstalk.</p>
+<p><img src="/img/eb/16-cs-deploy.png" alt="cs-deploy"> </p>
+<p>You will be shown a form to fill in. If you have followed along so far you should have all the values you need for this ready to go. Fill in the form similar to what I have here.</p>
+<p><img src="/img/eb/17-cs-eb-fill-in.png" alt="cs-eb-fill-in"></p>
+<p>The <code>AWS Access Key ID</code> and <code>AWS Secret Access Key</code> are the keys we generated for the deployment user. The <code>Region</code> is whatever region you created your EB stuff in. The <code>Application</code> is the name of the EB application we created. The <code>Environment</code> is the name of the environment we created for the application. The <code>S3 Bucket</code> is the name of the bucket being used by EB to store application resources.</p>
+<p>Now you can run your deployment pipeline. You probably need to push something to the branch you have configured to deploy.</p>
+<p><strong>One little gotcha</strong></p>
+<p>The first time I ran my pipeline I go this.</p>
+<p><img src="/img/eb/18-gotcha.png" alt="gotcha"></p>
+<p>To fix it I went in to the deployment menu in my EB app, removed the sample app and deployed the new app that Codeship had put there. The pipeline worked from then on. I presume I missed some step somewhere or perhaps I should have uploaded the app I was going to deploy in the earlier steps instead of selecting the Sample App. </p>
+<h2 id="testing-things-out">Testing things out</h2>
+<p>Your app should now be available to test. For me the public URL for my app was here.</p>
+<p>mytestapp.eu-west-1.elasticbeanstalk.com</p>
+<p>For you it will be the name of you app without hyphens + your region + .elasticbeanstalk.com </p>
+<p>Hit the URL to make sure the app is running. </p>
+<p>You can go in and check out application logs.</p>
+<p><img src="/img/eb/19-env.png" alt="env"></p>
+<p>If I hit issues deploying my app, I usually add a bunch of logging for things like the database connection or any other environment specific stuff and can check what is being picked up in those logs. Haven&#39;t come up with a better way than that yet.</p>
+<p>That&#39;s it. I hope it all worked out for you and you were able to get a deployment pipeline going. Please feel free to give any feedback or ask any questions in the comments section below.</p>
+
+    </section>
+
+      <div class="comments">
+          <div id="disqus_thread"></div>
+          <script>
+              var disqus_config = function () {
+                 // this.page.url = '/2018/03/elastic-beanstalk-with-codeship'; // Replace PAGE_URL with your page's canonical URL variable
+                  this.page.identifier = '/2018/03/elastic-beanstalk-with-codeship'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                  this.page.title = 'Deploying an app to Elastic Beanstalk with Codeship';
+              };
+              (function () { // DON'T EDIT BELOW THIS LINE
+                  var d = document, s = d.createElement('script');
+
+                  s.src = '//ruairitobrien.disqus.com/embed.js';
+
+                  s.setAttribute('data-timestamp', +new Date());
+                  (d.head || d.body).appendChild(s);
+              })();
+          </script>
+      </div>
+
+
+    
+    <footer class="post-footer">
+
+      
+      <figure class="author-image">
+        <a class="img" href="" style="background-image: url(/img/rob.jpg)"><span class="hidden">Ruairi O'Brien's Picture</span></a>
+      </figure>
+      
+
+      <section class="author">
+        <h4><a href="">Ruairi O'Brien</a></h4>
+
+        
+        <p>Code. Code. Code. Family stuff. Play video games. Code.</p>
+        
+        <div class="author-meta">
+          
+          <span class="author-location icon-location">Cork, IE</span>
+          
+          
+        </div>
+      </section>
+
+      <section class="share">
+        <h4>Share this post</h4>
+        <a class="icon-twitter" href="https://twitter.com/intent/tweet?text=Deploying%20an%20app%20to%20Elastic%20Beanstalk%20with%20Codeship&amp;url="
+          onclick="window.open(this.href + window.location.href, 'twitter-share', 'width=550,height=235');return false;">
+          <span class="hidden">Twitter</span>
+        </a>
+        <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u="
+          onclick="window.open(this.href + window.location.href, 'facebook-share','width=580,height=296');return false;">
+          <span class="hidden">Facebook</span>
+        </a>
+        <a class="icon-google-plus" href="https://plus.google.com/share?url="
+          onclick="window.open(this.href + window.location.href, 'google-plus-share', 'width=490,height=530');return false;">
+          <span class="hidden">Google+</span>
+        </a>
+      </section>
+
+    </footer>
+
+  </article>
+</main>
+
+<aside class="read-next">
+  
+    
+  
+    
+      
+        <a class="read-next-story" style="background-image: url(/img/heads/church.jpg)" href="/2018/03/the-church">
+          <section class="post">
+            <h2>The Church</h2>
+            <p>*I started having very vivid dreams at one point. I decided to start writing them down as soon as&hellip;</p>
+          </section>
+        </a>
+      
+      
+        <a class="read-next-story prev" style="background-image: url(/img/kb.jpg)" href="/2018/04/simple-dev-environment-with-docker-compose">
+          <section class="post">
+            <h2>Simple development environment setup with docker compose</h2>
+            <p>All the code for this article is in [this example project on Github](https://github.com/ruairitobrien/docker-dev-setup-example). If you just want some quick&hellip;</p>
+          </section>
+        </a>
+      
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+</aside>
+
+      <footer class="site-footer clearfix">
+        <section class="copyright"><a href="http://realgorithm.io/">Realgorithm</a> &copy; 2019</section>
+        <section class="poweredby">Proudly published with <a href="https://docpad.org">Docpad</a></section>
+      </footer>
+
+    </div>
+    <script defer="defer"  src="//code.jquery.com/jquery-2.1.4.min.js"></script><script defer="defer"  src="/js/jquery.fitvids.js"></script><script defer="defer"  src="/js/index.js"></script>
+    <script id="dsq-count-scr" src="//ruairitobrien.disqus.com/count.js" async></script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-40607409-4', 'auto');
+      ga('send', 'pageview');
+    </script>
+
+  </body>
+</html>

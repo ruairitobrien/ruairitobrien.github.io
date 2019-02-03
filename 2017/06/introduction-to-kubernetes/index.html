@@ -1,0 +1,532 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <title>Introduction to Kubernetes | Realgorithm</title>
+    <meta name="description" content="How to Win Programs and Influence Code." />
+    <meta name="HandheldFriendly" content="True" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link  rel="stylesheet" href="/css/screen.css" /><link  rel="stylesheet" href="/css/monokai_sublime.css" /><link  rel="stylesheet" href="//fonts.googleapis.com/css?family=Merriweather:300,700,700italic,300italic|Open+Sans:700,400" />
+    <meta name="generator" content="Docpad 6.x" />
+    <link rel="alternate" type="application/rss+xml" title="Realgorithm" href="/rss.xml" />
+    <style type="text/css">
+      #mc_embed_signup{clear:left; font:14px Helvetica,Arial,sans-serif; color: #fff}
+      #mc_embed_signup_scroll > h2 {color: #fff}
+    </style>
+  </head>
+  <body class="post-template nav-closed">
+    <div class="nav">
+    <h3 class="nav-title">Menu</h3>
+    <a href="#" class="nav-close">
+      <span class="hidden">Close</span>
+    </a>
+    <ul>
+      
+        <li class="nav-any" role="presentation">
+          <a href="/">Home</a>
+        </li>
+      
+        <li class="nav-any" role="presentation">
+          <a href="/about.html">About</a>
+        </li>
+      
+    </ul>
+    <a class="subscribe-button icon-feed" href="/rss.xml">Subscribe With RSS</a>
+</div>
+<span class="nav-cover"></span>
+
+    <div class="site-wrapper">
+
+      <header class="main-header post-head" style="background-image: url(/img/heads/steven-wei-124690.jpg)">
+  <nav class="main-nav overlay clearfix">
+    
+    <a class="blog-logo" href="http://realgorithm.io/"><img src="/img/logo.png" alt="Realgorithm" /></a>
+       
+  </nav>
+</header>
+
+<main class="content" role="main">
+  <article class="post">
+
+    <header class="post-header">
+      <h1 class="post-title">Introduction to Kubernetes</h1>
+      <section class="post-meta">
+        
+        <time class="post-date" datetime="2017-June-27">27 June 2017</time> 
+  <a href="/tags/kubernetes.html">kubernetes</a>
+
+      </section>
+    </header>
+    
+    <section class="post-content">
+      <p>(This is currently a work in progress)</p>
+<p>This post is a relatively short introduction to kubernetes. I wont actually be explaining what kubernetes is. That content is all available on <a href="https://kubernetes.io/">the kubernetes website</a>. This post is about using kubernetes for the first time and playing around with some of the basic features.</p>
+<p>We will look at using kubernetes in two ways. With the Google Cloud Platform (GCP) and with minikube. </p>
+<p>You can use one or the other or both, or indeed some other cloud provider but GCP and minikube ar ewhat we will use here. I recommend playing around with both GCP and minikube since it won&#39;t cost you anything. For GCP you need a Google account but you will also need a way to setup billing which pretty much means you will need a credit card. You won&#39;t have to spend money but you will need to have billing enabled in the GCP account. </p>
+<h3 id="install-the-gcp-sdk">Install the GCP SDK</h3>
+<p>Instructions here are good and cover all platforms: <a href="https://cloud.google.com/sdk/">https://cloud.google.com/sdk/</a></p>
+<p>You can also just use the cloud console in the GCP UI but I will use <code>gcloud</code> in the examples here.</p>
+<h3 id="install-kubectl">Install kubectl</h3>
+<p>Assumes you have followed the instructions above and installed <code>gcloud</code>.</p>
+<pre class="highlight"><code class="hljs bash">
+ gcloud components install kubectl
+
+</code></pre>
+<h3 id="google-cloud-platform">Google Cloud Platform</h3>
+<p>You can just skip forward and setup minikube if you prefer but I recommend using this to have something a little more &#39;real&#39;. </p>
+<p>First you need a google account. Not much point me explaining how to do that I guess. </p>
+<p>Then you will need to setup a GCP dashboard for yourself (if you haven&#39;t one already). Just open this link <a href="https://console.cloud.google.com/start">https://console.cloud.google.com/start</a> and follow the instructions. </p>
+<p><img src="/img/introkub/dashboard.png" alt="alt text" title="Dashboard"></p>
+<p>When on that page click the &#39;Create&#39; button to create a project.</p>
+<p>When selecting a name for your project try to use something globally unique to you. For example, for me I append my username.
+<img src="/img/introkub/new-project-name.png" alt="alt text" title="New Project"></p>
+<p>Notice it says &#39;Your project ID will be {the ID}&#39; and in my case the ID matches the name I specified.</p>
+<p>Beware if you use a name that has already been used somewhere else in the world, like in this example:
+<img src="/img/introkub/new-project-random-id.png" alt="alt text" title="New Project Random ID"></p>
+<p>You will get a random ID, which is a pain because whenever you need to use the ID you have to go digging for it (for some reason I keep forgetting where to find it) but the name is always visible in the UI and easier to remember.</p>
+<p>Next you will want to go the the API manager dashboard.
+<img src="/img/introkub/api-manager-menu.png" alt="alt text" title="API manager menu"></p>
+<p>Click &#39;Enable API&#39; near the top of the page.
+<img src="/img/introkub/enable-api.png" alt="alt text" title="Enable API"></p>
+<p>Select &#39;Compute Engine API&#39; (click the link under Popular APIs or search for it in the unlikely event it&#39;s not visible).
+<img src="/img/introkub/select-compute-engine.png" alt="alt text" title="Select compute engine"></p>
+<p>Then click the blue Enable button near the top.
+<img src="/img/introkub/enable-compute-engine.png" alt="alt text" title="Enable compute engine"></p>
+<p>At this point you will likely be asked to setup billing (unless you have already setup billing with GCP before).
+<img src="/img/introkub/enable-billing.png" alt="alt text" title="Enable billing"></p>
+<p>You will be offered a free trial but you still have to enter a credit card to get it. You don&#39;t really need the free trial for what we will be doing either but no harm setting it up.</p>
+<h4 id="create-a-cluster-in-gcp">Create a cluster in GCP</h4>
+<p>If you haven&#39;t authorized gcloud already, do so now like so:</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud auth login
+
+</code></pre>
+<p>That should open a browser window where you can login to your google account. </p>
+<p>Now configure the project you created (PROJECT_ID should be replaced with the ID of your project):</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud config <span class="hljs-built_in">set</span> project PROJECT_ID
+
+</code></pre>
+<p>Configure your desired zone like this:</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud config <span class="hljs-built_in">set</span> compute/zone europe-west1<span class="hljs-_">-d</span>
+
+</code></pre>
+<p>You can list the available zones with this command:</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud compute zones list
+
+</code></pre>
+<p>Verify the configuration like this:</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud config list core/project
+[core]
+project = kubernetes-practice-ruairi
+
+Your active configuration is: [default]
+
+</code></pre>
+<p>Now create a cluster.</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud container clusters create my-cool-cluster
+
+</code></pre>
+<p>(probably pick a better cluster name)</p>
+<p>Verify it&#39;s there.</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud container clusters list
+
+</code></pre>
+<p>You should see something like this.</p>
+<pre class="highlight"><code class="hljs bash">
+NAME             ZONE           MASTER_VERSION  MASTER_IP       MACHINE_TYPE   NODE_VERSION  NUM_NODES  STATUS
+my-cool-cluster  europe-west1<span class="hljs-_">-d</span> 1.6.4           130.211.181.72  n1-standard-1  1.6.4         1          RUNNING
+
+</code></pre>
+<h3 id="minikube">minikube</h3>
+<p>Minikube basically lets you run kubernetes locally. Follow the instructions here to get it setup:
+<a href="https://github.com/kubernetes/minikube">https://github.com/kubernetes/minikube</a></p>
+<p>With minkube creating a clust is a little easier:</p>
+<pre class="highlight"><code class="hljs bash">
+minikube start
+
+</code></pre>
+<p>You also have the added advantage of not needing to setup a GCP account and all that but it&#39;s only useful for developing stuff locally of course.</p>
+<p>To make sure kubectl is pointing at minikube try this:</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl cluster-info
+Kubernetes master is running at https://192.168.99.100:8443
+KubeDNS is running at https://192.168.99.100:8443/api/v1/proxy/namespaces/kube-system/services/kube-dns
+kubernetes-dashboard is running at https://192.168.99.100:8443/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard
+
+</code></pre>
+<h3 id="switching-contexts-in-kubectl">Switching contexts in kubectl</h3>
+<p>If you end up using both GCP and mimikube, it&#39;s useful to easily switch contexts in kubectl</p>
+<p>These commands help:</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl config get-contexts
+
+</code></pre>
+<pre class="highlight"><code class="hljs bash">
+kubectl config use-context <span class="hljs-variable">${context_name}</span>
+
+</code></pre>
+<p>You can also set the context in each call:</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl &lt;some options here&gt; --context=minikube
+
+</code></pre>
+<h3 id="deploy-something">Deploy something</h3>
+<p>For this we can create a simple hello world application and put it in a container. Here&#39;s one I made earlier: <a href="https://hub.docker.com/r/ruairitobrien/hello-kubernetes-world/">https://hub.docker.com/r/ruairitobrien/hello-kubernetes-world/</a></p>
+<p>Note, these instructions should work the same whether you are using GCP or minikube.</p>
+<p>Code for that app is here but nothing interesting there really <a href="https://github.com/ruairitobrien/hello-kubernetes-world">https://github.com/ruairitobrien/hello-kubernetes-world</a></p>
+<pre class="highlight"><code class="hljs bash">
+kubectl run hello-kubernetes --image ruairitobrien/hello-kubernetes-world:latest
+
+</code></pre>
+<p>You should usually specify a version number so you have a history of deployed versions that you can switch to if needed but &#39;:latest&#39; will do for this tutorial. </p>
+<p>You should see</p>
+<pre class="highlight"><code class="hljs bash">
+deployment <span class="hljs-string">"hello-kubernetes"</span> created
+
+</code></pre>
+<p>Verify it worked</p>
+<pre class="highlight"><code class="hljs bash">
+$ kubectl get deployments
+NAME               DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+hello-kubernetes   1         1         1            1           1m
+
+</code></pre>
+<p>You can also check the pod that was created:</p>
+<pre class="highlight"><code class="hljs bash">
+$ kubectl get pods
+NAME                                READY     STATUS    RESTARTS   AGE
+hello-kubernetes-3390701390-jds31   1/1       Running   0          1m
+
+</code></pre>
+<p>Pods are an important part of kubernetes but rather than me going on about them it&#39;s best to read up here: <a href="https://kubernetes.io/docs/concepts/workloads/pods/pod/">https://kubernetes.io/docs/concepts/workloads/pods/pod/</a></p>
+<p>It&#39;s also useful to check out the describe functions. Most things have them.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl describe deployment &lt;deploymentName&gt;
+
+<span class="hljs-comment"># Example</span>
+kubectl describe deployment hello-kubernetes
+
+kubectl describe pods &lt;podName&gt;
+
+<span class="hljs-comment"># Example</span>
+kubectl describe pods hello-kubernetes-3390701390-jds31
+
+</code></pre>
+<h3 id="you-have-a-deployment">You have a deployment</h3>
+<p>Now that you have a deployment, what are you going to do with it?</p>
+<p>I am just going to show a few simple things here to give you an idea of what&#39;s available. Most of this and much more can be found  <a href="in these docs">https://kubernetes.io/docs/user-guide/kubectl-cheatsheet/</a>.</p>
+<p>You will probably want to look at logs a bit. You can look at the logs for a pod with this.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl logs &lt;podName&gt;
+
+<span class="hljs-comment"># Example</span>
+kubectl logs hello-kubernetes-3390701390-jds31
+
+</code></pre>
+<p>This will give you the logs for this instance of that pod. You can go more in detail, for example in the case where you have a pod with multiple containers. More on that <a href="https://kubernetes.io/docs/user-guide/kubectl/v1.6/#logs">here</a>.</p>
+<p>Now let the world see your amazing app!</p>
+<p>First, run get services.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get services
+NAME         CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
+kubernetes   10.55.240.1   &lt;none&gt;        443/TCP   1h
+
+</code></pre>
+<p>You can see there is no external IP and no mention of the pod we created.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl expose deployment hello-kubernetes --<span class="hljs-built_in">type</span> LoadBalancer --port 80 --target-port=8000
+
+</code></pre>
+<p>Here we are using the load balancer option.</p>
+<blockquote>
+<p>LoadBalancer - Creates an external load balancer in the current cloud (if supported) and assigns a fixed, external IP to the Service. Superset of NodePort.</p>
+</blockquote>
+<p>There are other types you can use.</p>
+<blockquote>
+<p>Type for this service: ClusterIP, NodePort, or LoadBalancer. Default is &#39;ClusterIP&#39;.</p>
+</blockquote>
+<p>We&#39;re using LoadBalancer because it&#39;s a nice option for us to play around with autoscaling soon.</p>
+<p><code>--port</code> is the port we are exposing our service on.</p>
+<p><code>--target-port</code> is the port our application in the Docker image happens to be exposed on.</p>
+<p>Wait a minute or so for things to work out and then run this.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl describe svc hello-kubernetes
+
+</code></pre>
+<p>You should see something like this.</p>
+<pre class="highlight"><code class="hljs bash">
+Name:            hello-kubernetes
+Namespace:        default
+Labels:            run=hello-kubernetes
+Annotations:        &lt;none&gt;
+Selector:        run=hello-kubernetes
+Type:            LoadBalancer
+IP:            10.55.243.178
+LoadBalancer Ingress:    104.154.182.255
+Port:            &lt;<span class="hljs-built_in">unset</span>&gt;    80/TCP
+NodePort:        &lt;<span class="hljs-built_in">unset</span>&gt;    31390/TCP
+Endpoints:        10.52.0.5:8000
+Session Affinity:    None
+
+</code></pre>
+<p>The &#39;Endpoints&#39; value is the internal ip and port of your application running in the cluster. </p>
+<p>This value: LoadBalancer Ingress:    104.154.182.255 is what we can use to talk to our application externally. Stick the ip address that you see there in your browser and you should see &#39;hello kubernetes world&#39; or whatever you have your application sending back if you wrote your own there. </p>
+<h3 id="autoscaling">Autoscaling</h3>
+<p>This for me was the first really cool thing I came across when playing around with kubernetes. Now our application is deployed, we can attach an autoscaler to it. Here is a command we can use to do that.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl autoscale deployment hello-kubernetes --cpu-percent=1 --min=4 --max=12
+
+</code></pre>
+<p>Now we have attached an autoscaler.</p>
+<p><code>--cpu-percent</code> will try to average the utilization across all the pods to the percent we set i.e. will scale up until it hits the max amount of pods if cpu utilization goes above 10% on average across all existing pods. We set 1% for demonstration purposes so we have a chance of forcing the cluster to scale up when hitting it from our machine.</p>
+<p><code>--min</code> is the minimum amount of pods we want in the cluster.</p>
+<p><code>--max</code> is the maximum amount of pods we will allow the autoscaler to provision for us. </p>
+<p>The autoscaler will scale up when cpu is above 10% on average. It will also scale down to the minimum when cpu utilisation is below average.</p>
+<p>Try running this.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl describe svc hello-kubernetes
+
+</code></pre>
+<p>You should see something like this.</p>
+<pre class="highlight"><code class="hljs bash">
+Name:            hello-kubernetes
+Namespace:        default
+Labels:            run=hello-kubernetes
+Annotations:        &lt;none&gt;
+Selector:        run=hello-kubernetes
+Type:            LoadBalancer
+IP:            10.55.245.180
+LoadBalancer Ingress:    104.198.145.117
+Port:            &lt;<span class="hljs-built_in">unset</span>&gt;    80/TCP
+NodePort:        &lt;<span class="hljs-built_in">unset</span>&gt;    32063/TCP
+Endpoints:        10.52.0.5:8000,10.52.2.6:8000,10.52.2.7:8000,10.52.2.8:8000
+Session Affinity:    None
+
+</code></pre>
+<p>Notice we now have 4 endpoints. You could see this with <code>kubectl get pods</code> too. The autoscaler has already scaled up to meet the minimum requirements we set.</p>
+<p>To see the state of the autoscaler run this.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get hpa
+
+</code></pre>
+<p>You should see something like this.</p>
+<pre class="highlight"><code class="hljs bash">
+NAME               REFERENCE                     TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+hello-kubernetes   Deployment/hello-kubernetes   0% / 1%   4         12        4          1m
+
+</code></pre>
+<p>And just to confirm the number of pods is 4.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get pods
+NAME                                READY     STATUS    RESTARTS   AGE
+hello-kubernetes-3390701390-jds31   1/1       Running   0          3m
+hello-kubernetes-3390701390-q1v74   1/1       Running   0          3m
+hello-kubernetes-3390701390-txg9z   1/1       Running   0          3m
+hello-kubernetes-3390701390-w6kjg   1/1       Running   0          47m
+
+</code></pre>
+<p>Now the fun part. Let&#39;s see autoscaling in action! </p>
+<p>You probably have a better way of doing this (please comment with a suggestion) but what I did here was just run this.</p>
+<pre class="highlight"><code class="hljs bash">
+<span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>; <span class="hljs-keyword">do</span> curl -XGET <span class="hljs-variable">${IP}</span> &amp; <span class="hljs-keyword">done</span>
+
+<span class="hljs-comment"># So for my cluster in the above examples that was</span>
+
+<span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>; <span class="hljs-keyword">do</span> curl -XGET 104.198.145.117 &amp; <span class="hljs-keyword">done</span>
+
+</code></pre>
+<p>Or something a little safer perhaps.</p>
+<pre class="highlight"><code class="hljs bash">
+<span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> {1..1000}; <span class="hljs-keyword">do</span> curl -XGET <span class="hljs-variable">${IP}</span> &amp; <span class="hljs-keyword">done</span>
+
+</code></pre>
+<p>If you go down the safe route with a limited loop, the timing where you check the following things is important.</p>
+<p>After a while you should start to see autoscaling kicking in:</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get hpa
+NAME               REFERENCE                     TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+hello-kubernetes   Deployment/hello-kubernetes   3% / 1%   4         12        8          4m
+
+</code></pre>
+<p>You can see the &#39;TARGETS&#39; ratio (that&#39;s the CPU utilisation) is grown above that which we specified. In my example it&#39;s 3% but the autoscaler wants it to be below 1% on average so it should start scaling up to bring that back in balance. </p>
+<p>Check the new pods getting created.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get pods
+NAME                                READY     STATUS    RESTARTS   AGE
+hello-kubernetes-3390701390-1ght4   1/1       Running   0          39s
+hello-kubernetes-3390701390-2gp0c   1/1       Running   0          39s
+hello-kubernetes-3390701390-ddgv0   1/1       Running   0          39s
+hello-kubernetes-3390701390-jds31   1/1       Running   0          4m
+hello-kubernetes-3390701390-q1v74   1/1       Running   0          4m
+hello-kubernetes-3390701390-t6s63   1/1       Running   0          39s
+hello-kubernetes-3390701390-txg9z   1/1       Running   0          4m
+hello-kubernetes-3390701390-w6kjg   1/1       Running   0          48m
+
+</code></pre>
+<p>Don&#39;t forget to while loop! Unless you used the for loop of course.</p>
+<p>After a minute or 2 check again.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get hpa
+NAME               REFERENCE                     TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+hello-kubernetes   Deployment/hello-kubernetes   0% / 1%   4         12        8          8m
+
+</code></pre>
+<p>See the pods are terminating.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get pods
+NAME                                READY     STATUS        RESTARTS   AGE
+hello-kubernetes-3390701390-1ght4   1/1       Terminating   0          5m
+hello-kubernetes-3390701390-2gp0c   1/1       Terminating   0          5m
+hello-kubernetes-3390701390-ddgv0   1/1       Terminating   0          5m
+hello-kubernetes-3390701390-jds31   1/1       Running       0          9m
+hello-kubernetes-3390701390-q1v74   1/1       Running       0          9m
+hello-kubernetes-3390701390-t6s63   1/1       Terminating   0          5m
+hello-kubernetes-3390701390-txg9z   1/1       Running       0          9m
+hello-kubernetes-3390701390-w6kjg   1/1       Running       0          53m
+
+</code></pre>
+<p>They may already be gone depending how long you waited to check. </p>
+<p>Maybe I am too easily impressed but I just think that is awesome!</p>
+
+    </section>
+
+      <div class="comments">
+          <div id="disqus_thread"></div>
+          <script>
+              var disqus_config = function () {
+                 // this.page.url = '/2017/06/introduction-to-kubernetes'; // Replace PAGE_URL with your page's canonical URL variable
+                  this.page.identifier = '/2017/06/introduction-to-kubernetes'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+                  this.page.title = 'Introduction to Kubernetes';
+              };
+              (function () { // DON'T EDIT BELOW THIS LINE
+                  var d = document, s = d.createElement('script');
+
+                  s.src = '//ruairitobrien.disqus.com/embed.js';
+
+                  s.setAttribute('data-timestamp', +new Date());
+                  (d.head || d.body).appendChild(s);
+              })();
+          </script>
+      </div>
+
+
+    
+    <footer class="post-footer">
+
+      
+      <figure class="author-image">
+        <a class="img" href="" style="background-image: url(/img/rob.jpg)"><span class="hidden">Ruairi O'Brien's Picture</span></a>
+      </figure>
+      
+
+      <section class="author">
+        <h4><a href="">Ruairi O'Brien</a></h4>
+
+        
+        <p>Code. Code. Code. Family stuff. Play video games. Code.</p>
+        
+        <div class="author-meta">
+          
+          <span class="author-location icon-location">Cork, IE</span>
+          
+          
+        </div>
+      </section>
+
+      <section class="share">
+        <h4>Share this post</h4>
+        <a class="icon-twitter" href="https://twitter.com/intent/tweet?text=Introduction%20to%20Kubernetes&amp;url="
+          onclick="window.open(this.href + window.location.href, 'twitter-share', 'width=550,height=235');return false;">
+          <span class="hidden">Twitter</span>
+        </a>
+        <a class="icon-facebook" href="https://www.facebook.com/sharer/sharer.php?u="
+          onclick="window.open(this.href + window.location.href, 'facebook-share','width=580,height=296');return false;">
+          <span class="hidden">Facebook</span>
+        </a>
+        <a class="icon-google-plus" href="https://plus.google.com/share?url="
+          onclick="window.open(this.href + window.location.href, 'google-plus-share', 'width=490,height=530');return false;">
+          <span class="hidden">Google+</span>
+        </a>
+      </section>
+
+    </footer>
+
+  </article>
+</main>
+
+<aside class="read-next">
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+    
+      
+        <a class="read-next-story" style="background-image: url(/img/pacman.png)" href="/2016/11/firing-phasers">
+          <section class="post">
+            <h2>Start Game Coding in ES6</h2>
+            <p>__TL;DR__ If you want to try my solution to developing with [phaser 2](http://phaser.io/) and es6, try this yeoman generator&hellip;</p>
+          </section>
+        </a>
+      
+      
+        <a class="read-next-story prev" style="background-image: url(/img/heads/austin-neill-163306-min.jpg)" href="/2017/09/does-tdd-work">
+          <section class="post">
+            <h2>Does Test Driven Development Work?</h2>
+            <p>## Introduction
+
+[Bertrand Russell](https://en.wikipedia.org/wiki/Bertrand_Russell) was concerned about the issue of having to accept certain axioms to be able to proceed&hellip;</p>
+          </section>
+        </a>
+      
+    
+  
+    
+  
+    
+  
+    
+  
+    
+  
+</aside>
+
+      <footer class="site-footer clearfix">
+        <section class="copyright"><a href="http://realgorithm.io/">Realgorithm</a> &copy; 2019</section>
+        <section class="poweredby">Proudly published with <a href="https://docpad.org">Docpad</a></section>
+      </footer>
+
+    </div>
+    <script defer="defer"  src="//code.jquery.com/jquery-2.1.4.min.js"></script><script defer="defer"  src="/js/jquery.fitvids.js"></script><script defer="defer"  src="/js/index.js"></script>
+    <script id="dsq-count-scr" src="//ruairitobrien.disqus.com/count.js" async></script>
+
+    <script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-40607409-4', 'auto');
+      ga('send', 'pageview');
+    </script>
+
+  </body>
+</html>

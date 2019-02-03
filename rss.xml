@@ -1,0 +1,1305 @@
+<?xml version="1.0" encoding="UTF-8"?><rss xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:content="http://purl.org/rss/1.0/modules/content/" xmlns:atom="http://www.w3.org/2005/Atom" version="2.0">
+    <channel>
+        <title><![CDATA[Realgorithm]]></title>
+        <description><![CDATA[How to Win Programs and Influence Code.]]></description>
+        <link>http://realgorithm.io/</link>
+        <generator>RSS for Node</generator>
+        <lastBuildDate>Sun, 03 Feb 2019 16:18:01 GMT</lastBuildDate>
+        <atom:link href="http://realgorithm.io//rss.xml" rel="self" type="application/rss+xml"/>
+        <pubDate>Sun, 03 Feb 2019 16:17:50 GMT</pubDate>
+        <item>
+            <title><![CDATA[Simple development environment setup with docker compose]]></title>
+            <description><![CDATA[<p>All the code for this article is in <a href="https://github.com/ruairitobrien/docker-dev-setup-example">this example project on Github</a>. If you just want some quick sample code for a development environment with docker-compose, that repository and its Readme should be helpful. This post will expand on that and go in to more detail to explain what&#39;s going on in the example project.</p>
+<h2 id="the-purpose-of-this-post">The purpose of this post</h2>
+<p>I am assuming that you know what <a href="https://www.docker.com/">docker</a> and <a href="https://docs.docker.com/compose/">docker compose</a> are and won&#39;t spend time in this post explaining them. This post will take what I learned from experience and reading the docs for those tools and present what I hope is a reasonably simple approach to using them to augment your development environment in a good way.</p>
+<h2 id="setup">Setup</h2>
+<p>All you need to do to run the sample code is to <a href="https://docs.docker.com/install/">install docker</a> and <a href="https://docs.docker.com/compose/install/">install docker compose</a>. Docker compose generally installs along with docker.</p>
+<p>You will also need to get the sample code <a href="https://github.com/ruairitobrien/docker-dev-setup-example">from Github</a>.</p>
+<p>If you have <a href="https://git-scm.com/">git</a> installed you can run:</p>
+<pre class="highlight"><code class="hljs stylus">git clone git@github<span class="hljs-selector-class">.com</span>:ruairitobrien/docker-dev-setup-example<span class="hljs-selector-class">.git</span>
+</code></pre><p>If not, you can use the &#39;Download Zip` option on the project web page.</p>
+<p>Finally, a good editor to view and edit the code would be useful. For what it&#39;s worth, I use <a href="https://code.visualstudio.com/">Visual Studio Code</a>.</p>
+<h2 id="the-scenario">The Scenario</h2>
+<p>Feel free to skip this section but I wanted to take a moment to mention some of the pain points this solution helps to address.</p>
+<p>You have an application and it connects to an external service such as a database. You probably have the tools to run the application installed locally but maybe it&#39;s a bit annoying, like if for some reason the production environment is stuck on an old version of the database and you&#39;re using some infrastructure where you have to go through a painful ticketing process to update (your next ticket should be to install docker!).</p>
+<p>Say the app uses a postgres database. You don&#39;t really want to be connecting to a remote one or having it running locally all the time.</p>
+<p>Maybe you work on multiple applications that require different runtimes. For example one app need java 6 (shudder) and another needs Java 8 or maybe different version of node.</p>
+<p>Not sure if these are issues you have dealt with but I think it&#39;s safe to assume you have run into something similar.</p>
+<p>Having your development environment in containers solves al lot of this pretty well. You really only need docker, docker compose and an editor to work on and run your application locally.</p>
+<p>Having your development environment use the same containers as production (assuming you deploy with containers) is even better again!</p>
+<p>The scenario we are working with here is needing to run a node app, a java app and a postgres database together. It&#39;s not something you would typically need perhaps but serves as an example.</p>
+<h2 id="the-sample-application">The Sample Application</h2>
+<p>The example project we will look at consists of 2 applications. They are not really related and don&#39;t do much but are just examples in 2 different languages I commonly use. It may make sense for me to break them out into 2 repositories at some stage but until then, it&#39;s just useful to have all the code in one place for demonstration purposes. Both applications connect to a postgres database, the same database in this setup which you wouldn&#39;t normally do if these were microservices for example but that doesn&#39;t do any harm here.</p>
+<p>One application is written in JavaScript using <a href="https://nodejs.org/">https://nodejs.org/</a>. The code for the node app was generated using <a href="https://expressjs.com/en/starter/generator.html">the express generator</a>. We will explore how we can have it run and build entirely in a docker container even though you can edit it in your editor on any host OS (by Host OS I mean the machine and operating system you are using for development currently). We will also look at having the application automatically restart on any file change and how we can setup debugging the app while it is running in the docker container. For auto restarting we are using <a href="http://pm2.keymetrics.io/">pm2</a> but <a href="https://nodemon.io/">nodemon</a> is another great option you could use instead.</p>
+<p>The second application is a Java application based on Spring Boot and was generated using the <a href="https://start.spring.io/">start.spring.io</a> site. We will also look at running this application entirely in a docker container, having it automatically restart on code changes and enabling debugging for application while it&#39;s running in a container.</p>
+<h2 id="the-compose-configuration">The Compose Configuration</h2>
+<p>Here is our docker-compose.yml file in its entirety:</p>
+<pre class="highlight"><code class="hljs yaml"><span class="hljs-attr">version:</span> <span class="hljs-string">'3.7'</span>
+<span class="hljs-attr">services:</span>
+<span class="hljs-attr">  db:</span>
+<span class="hljs-attr">    image:</span> <span class="hljs-attr">postgres:alpine</span>
+<span class="hljs-attr">    restart:</span> <span class="hljs-string">always</span>
+<span class="hljs-attr">    hostname:</span> <span class="hljs-string">db</span>
+<span class="hljs-attr">    environment:</span>
+<span class="hljs-attr">      POSTGRES_USER:</span> <span class="hljs-string">dev</span>
+<span class="hljs-attr">      POSTGRES_PASSWORD:</span> <span class="hljs-string">password</span>
+<span class="hljs-attr">      POSTGRES_DB:</span> <span class="hljs-string">dev</span>
+<span class="hljs-attr">    volumes:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">./.postgres/init:/docker-entrypoint-initdb.d</span>
+<span class="hljs-attr">    ports:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">'5432:5432'</span>
+<span class="hljs-attr">    networks:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">develop</span>
+<span class="hljs-attr">  pgadmin:</span>
+<span class="hljs-attr">    container_name:</span> <span class="hljs-string">pgadmin_container</span>
+<span class="hljs-attr">    image:</span> <span class="hljs-string">dpage/pgadmin4</span>
+<span class="hljs-attr">    ports:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">'9000:80'</span>
+<span class="hljs-attr">    environment:</span>
+<span class="hljs-attr">      PGADMIN_DEFAULT_EMAIL:</span> <span class="hljs-string">pgadmin4@pgadmin.org</span>
+<span class="hljs-attr">      PGADMIN_DEFAULT_PASSWORD:</span> <span class="hljs-string">admin</span>
+<span class="hljs-attr">    volumes:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">./.postgres/admin:/var/lib/pgadmin</span>
+<span class="hljs-attr">    networks:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">develop</span>
+<span class="hljs-attr">    depends_on:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">db</span>
+<span class="hljs-attr">  node:</span>
+<span class="hljs-attr">    build:</span> <span class="hljs-string">node/</span>
+<span class="hljs-attr">    ports:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">'3000:3000'</span>
+<span class="hljs-attr">    volumes:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">./node/src:/usr/app/src</span>
+<span class="hljs-attr">    working_dir:</span> <span class="hljs-string">/usr/app</span>
+<span class="hljs-attr">    environment:</span>
+<span class="hljs-attr">      PGUSER:</span> <span class="hljs-string">dev</span>
+<span class="hljs-attr">      PGPASSWORD:</span> <span class="hljs-string">password</span>
+<span class="hljs-attr">      PGDATABASE:</span> <span class="hljs-string">dev</span>
+<span class="hljs-attr">      PGHOST:</span> <span class="hljs-string">db</span>
+<span class="hljs-attr">    networks:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">develop</span>
+<span class="hljs-attr">    command:</span> <span class="hljs-string">['pm2-runtime',</span> <span class="hljs-string">'start'</span><span class="hljs-string">,</span> <span class="hljs-string">'ecosystem.config.js'</span><span class="hljs-string">]</span>
+<span class="hljs-attr">    depends_on:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">db</span>
+<span class="hljs-attr">  java:</span>
+<span class="hljs-attr">    image:</span> <span class="hljs-attr">gradle:jdk-alpine</span>
+<span class="hljs-attr">    ports:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">'8080:8080'</span>
+<span class="hljs-attr">    volumes:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">./java:/home/gradle/project</span>
+<span class="hljs-attr">    working_dir:</span> <span class="hljs-string">/home/gradle/project</span>
+<span class="hljs-attr">    networks:</span>
+<span class="hljs-bullet">      -</span> <span class="hljs-string">develop</span>
+<span class="hljs-attr">    command:</span> <span class="hljs-string">['gradle',</span> <span class="hljs-string">'build'</span><span class="hljs-string">,</span> <span class="hljs-string">'bootRun'</span><span class="hljs-string">]</span>
+<span class="hljs-attr">networks:</span> <span class="hljs-attr">develop:</span>
+</code></pre>
+<p>The version (<code>3.7&#39;</code> in this case) is important. The capabilities from version to version of docker compose are significant. The reference manual for our version is <a href="https://docs.docker.com/compose/compose-file/">here</a>.</p>
+<p>The <code>services</code> field is a list of services we want docker compose to manage. The services are the various components we want to run together while developing. Our example here may be a bit contrived but imaging a more useful scenario where you would like to see how your app behaves connected to various services it uses in production like a database and maybe a cache, like <a href="https://hub.docker.com/_/memcached">memcached</a>, or messaging service, like <a href="https://hub.docker.com/_/rabbitmq">rabbitmq</a>.</p>
+<p>The <code>networks</code> field is where we define the networks we want the services ot communicate over. We&#39;re keeping it simple and just using one here but you can do more with networks if you need to.</p>
+<h3 id="the-database-configuration">The database configuration</h3>
+<pre class="highlight"><code class="hljs yaml"><span class="hljs-attr">db:</span>
+<span class="hljs-attr">  image:</span> <span class="hljs-attr">postgres:alpine</span>
+<span class="hljs-attr">  restart:</span> <span class="hljs-string">always</span>
+<span class="hljs-attr">  hostname:</span> <span class="hljs-string">db</span>
+<span class="hljs-attr">  volumes:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">./.postgres/init:/docker-entrypoint-initdb.d</span>
+<span class="hljs-attr">  environment:</span>
+<span class="hljs-attr">    POSTGRES_USER:</span> <span class="hljs-string">dev</span>
+<span class="hljs-attr">    POSTGRES_PASSWORD:</span> <span class="hljs-string">password</span>
+<span class="hljs-attr">    POSTGRES_DB:</span> <span class="hljs-string">dev</span>
+<span class="hljs-attr">  ports:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">'5432:5432'</span>
+<span class="hljs-attr">  networks:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">develop</span>
+</code></pre>
+<p>The first field, the name &#39;db&#39; above could be any name. Like any name in software, it&#39;s good to use something as clear and obvious as possible. You will use that to reference this service in other services.</p>
+<p>The <code>image</code> is the <a href="https://hub.docker.com/_/postgres">postgres docker image</a>. You can also define a version there e.g. <code>postgres:11-alpine</code> if you want a specific version. Otherwise it just uses the latest.</p>
+<p><code>restart: always</code> tells compose to restart this image if it crashes.</p>
+<p><code>hostname: db</code> you don&#39;t actually need this here but if you wanted to change the hostname seen by other services you can use this field. My default other services will use the service name as the hostname. By hostname I mean, other containers can see the container by using that name as long as they are on the same network. The name will resolve to the IP address of the container.</p>
+<p><code>volumes</code> we use volumes to mount a directory on our host system, into the running container. In this case we are mounting an sql script in to a particular place in the container so that the very first time the container is created, the script is run against the database and we can set up a scheme, populate with dummy data etc. Some other things we can do with this are, load a database configuration file and use a database file on our local file system for the database storage. By default, every time we tear down the database container we will lose all the data that was loaded into the database while we were working.</p>
+<p>If you want to keep the state of the database you can create a directory somewhere, e.g. from the root of the sample app run<code>mkdir .postgres/data</code>and add a new volume to the volumes field of the configuration:</p>
+<p><code>- ./.postgres/data:/var/lib/postgresql/data</code></p>
+<p>Now the database&#39;s data will be stored in that directory and can be deleted on the host.</p>
+<p><code>environment</code> here we can specify environment variables to inject in to the running container. The variables we use are documented <a href="https://hub.docker.com/_/postgres">here</a>.</p>
+<p><code>ports</code> by default postgres serves on port 5432. Here we are exposing that on the host.</p>
+<p><code>networks</code> we want all the services to be able to communicate on the same network. Docker allows us to define a network for our services to share. We are creating a network called &#39;develop&#39; and this tells the postgres service to join it.</p>
+<h3 id="the-node-application-configuration">The node application configuration</h3>
+<p>First let&#39;s look at the Dockerfile:</p>
+<pre class="highlight"><code class="hljs dockerfile"><span class="hljs-keyword">FROM</span> keymetrics/pm2:latest-alpine
+
+<span class="hljs-keyword">WORKDIR</span><span class="bash"> /usr/app
+</span>
+<span class="hljs-keyword">COPY</span><span class="bash"> bin/ ./bin/
+</span><span class="hljs-keyword">COPY</span><span class="bash"> package.json .
+</span><span class="hljs-keyword">COPY</span><span class="bash"> yarn.lock .
+</span><span class="hljs-keyword">COPY</span><span class="bash"> ecosystem.config.js .
+</span>
+<span class="hljs-keyword">ENV</span> NPM_CONFIG_LOGLEVEL warn
+<span class="hljs-keyword">RUN</span><span class="bash"> yarn install
+</span></code></pre>
+<p><code>FROM keymetrics/pm2:latest-alpine</code> this is an image provided by the <a href="http://pm2.keymetrics.io/">pm2</a> people which is handy for auto restarting our app on code changes but we have many options. We could use the <a href="https://hub.docker.com/_/node/">NodeJS image</a> and start a little differently <code>command: [&quot;npm&quot;, &quot;start&quot;]</code> for example. We could also use a custom Dockerfile for our app. If you had a python app or whatever, you could just use the appropriate image for that here instead.</p>
+<p><code>WORKDIR /usr/app</code> I am not sure is using /usr/app is a convention or just something I copied and kept using but I tend to use it as the place to put my app code in most docker containers. Any commands run after specifying that in the Dockerfile will be run in the context of that directory.</p>
+<p>After that point, with all the <code>COPY</code> calls, we&#39;re doing a few slightly odd things here and I&#39;ll explain why. We want the application to install all it&#39;s dependencies in the Docker container. With the way node dependencies work, it can cause problems to install on the host and not in the container.</p>
+<p>Take an example where you are developing on Windows. If you install the dependencies on Windows first and then mount the code in a container, you will hit issues. Node will install and even compile dependencies for the OS you are on. Trying to run your Windows dependencies in Linux will cause issues.</p>
+<p>To get around this, we keep all our source code in a sub directory called <code>src</code>. We want to only mount the src directory during development. When we actually build our image, we want to copy in the build files and install dependencies. That way, even if you have run <code>yarn</code> or <code>npm install</code>, the node_modules directory won&#39;t get copied over to the container. If you run docker compose with <code>docker-compose up --build</code>, it will pick up any changes you made to your dependencies and rebuild the image so you don&#39;t get out of sync.</p>
+<p>It&#39;s a little bit awkward and there may well be a better way to manage this but this is what I have come up with so far and I am sharing it with you.</p>
+<p>Now to look at the compose configuration for the node application:</p>
+<pre class="highlight"><code class="hljs yaml"><span class="hljs-attr">node:</span>
+<span class="hljs-attr">  build:</span> <span class="hljs-string">node/</span>
+<span class="hljs-attr">  ports:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">'3000:3000'</span>
+<span class="hljs-attr">  volumes:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">./node/src:/usr/app/src</span>
+<span class="hljs-attr">  working_dir:</span> <span class="hljs-string">/usr/app</span>
+<span class="hljs-attr">  environment:</span>
+<span class="hljs-attr">    PGUSER:</span> <span class="hljs-string">dev</span>
+<span class="hljs-attr">    PGPASSWORD:</span> <span class="hljs-string">password</span>
+<span class="hljs-attr">    PGDATABASE:</span> <span class="hljs-string">dev</span>
+<span class="hljs-attr">    PGHOST:</span> <span class="hljs-string">db</span>
+<span class="hljs-attr">  networks:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">develop</span>
+<span class="hljs-attr">  command:</span> <span class="hljs-string">['pm2-runtime',</span> <span class="hljs-string">'start'</span><span class="hljs-string">,</span> <span class="hljs-string">'ecosystem.config.js'</span><span class="hljs-string">]</span>
+<span class="hljs-attr">  depends_on:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">db</span>
+</code></pre>
+<p><code>node</code> is our service name. Could be anything but good to use a name that makes sense.</p>
+<p><code>ports</code> by default the port express serves on is 3000. With this we are exposing this on the host too.</p>
+<p><code>volumes</code> mounting the source code for the application into the container so any edits we make in our editor will be reflected in the running container.</p>
+<p><code>environment</code> setting up environment variables. In this case, just providing database connection information.</p>
+<p><code>networks</code> puts the node app on the development network.</p>
+<p><code>command</code> is the command to run when the container starts.</p>
+<p><code>depends_on</code> tells the web service to wait until the db services container has at least started before starting itself. This does not guarantee the service itself e.g. the postgres database has actually started beforehand though. Only that the container is in a running state.</p>
+<p>Beyond all that setup, all the application does is test out its connection to postgres.</p>
+<h2 id="the-java-application-configuration">The java application configuration</h2>
+<p>The java app does not have its own Dockerfile although you could add one if you wish. It&#39;s just not needed at this point.</p>
+<pre class="highlight"><code class="hljs yaml"><span class="hljs-attr">java:</span>
+<span class="hljs-attr">  image:</span> <span class="hljs-attr">gradle:jdk-alpine</span>
+<span class="hljs-attr">  ports:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">'8080:8080'</span>
+<span class="hljs-attr">  volumes:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">./java:/home/gradle/project</span>
+<span class="hljs-attr">  working_dir:</span> <span class="hljs-string">/home/gradle/project</span>
+<span class="hljs-attr">  networks:</span>
+<span class="hljs-bullet">    -</span> <span class="hljs-string">develop</span>
+<span class="hljs-attr">  command:</span> <span class="hljs-string">['gradle',</span> <span class="hljs-string">'build'</span><span class="hljs-string">,</span> <span class="hljs-string">'bootRun'</span><span class="hljs-string">]</span>
+</code></pre>
+<p>If you have read over the last 2 configurations you probably won&#39;t need much explanation but I will go over the properties briefly.</p>
+<p><code>java</code> the name of the service.</p>
+<p><code>image</code> we are using the <a href="https://hub.docker.com/_/gradle">official gradle image</a></p>
+<p><code>ports</code> by default spring boot serves on port 8080. We are exposing that here.</p>
+<p><code>volumes</code> we are mounting the source code into the container at the location <code>/home/gradle/project</code>. This is the expected location documented on the dockerhub page for this container.</p>
+<p><code>working_dir</code> setting the working directory to where the code is.</p>
+<p><code>networks</code> the develop network we configure for the services to talk to each other.</p>
+<p><code>command</code> we call gradle and the tasks we want to be run on startup.</p>
+<h2 id="running-the-applications">Running the applications</h2>
+<p>Once you have everything set up, starting the application is simply running <code>docker-compose up --build</code> in the directory that contains the compose file.</p>
+<p>If you want to teardown and delete the containers that were created, first hit ctrl+c to shutdown the current docker compose session. Then run <code>docker-compose down</code>.</p>
+<h2 id="automatically-restarting-the-applications-on-code-change">Automatically restarting the applications on code change</h2>
+<p>Having a quick feedback loop is very important while developing. I thought it important to highlight the fact that you can still use the techniques you might be used to during normal development, while using docker.</p>
+<h3 id="node">node</h3>
+<p>If you develop with node, you probably have used <a href="https://nodemon.io/">nodemon</a> or something similar to automatically restart your application after a file has changed. You can do the very same with docker even when working with volumes. In our example we are using <a href="https://pm2.io/doc/en/runtime/overview/">pm2</a> which is a nice process manager for node and provides features for watching source files and reloading on change. Try out changing a file in the node project and see the app reload.</p>
+<h3 id="java">java</h3>
+<p>For the java application we are using <a href="https://docs.spring.io/spring-boot/docs/current/reference/html/using-boot-devtools.html">Spring Devtools</a>. They are pretty well documented but basically we are going for a similar effect to what nodemon does for node. Try out changing any source file in the java application and watch it automatically restart.</p>
+<h2 id="debugging">Debugging</h2>
+<p>I was going to put a tutorial based on tools I use here but it would honestly be a bit redundant. There are far more comprehensive tutorials out there. I will link them here:</p>
+<p><strong>Node</strong></p>
+<ul>
+<li><a href="https://blog.docker.com/2016/07/live-debugging-docker/">VSCode</a></li>
+<li><a href="https://medium.com/@creynders/debugging-node-apps-in-docker-containers-through-webstorm-ae3f8efe554d">WebStorm</a></li>
+</ul>
+<p><strong>Java</strong></p>
+<ul>
+<li>Tutorials for <a href="https://blog.docker.com/2016/09/java-development-using-docker/">Eclipse, IntelliJ and Netbeans</a></li>
+</ul>
+<h2 id="conclusion">Conclusion</h2>
+<p>If you are not already familiar with docker, there&#39;s a bit to take in here. Once you pick of the concepts though, and work through a few of those slightly weird to get the head around bits, it&#39;s amazingly useful. Maybe some new thing will come along and make it all redundant but in the meantime, I believe it&#39;s worth the effort for most people working on any kind of coding or infrastructure tasks.</p>
+<p>I find myself jumping around to different computers, different OSes, occasionally trying out new Linux distros and having to setup environments is a real pain. Even if you automate some of it there&#39;s always something to take up a bunch of time.</p>
+<p>With docker, I find for the most part I can get away with only 3 things on any system to get productive quickly. Docker, Git and an editor. I hope you find similar advantages to this stuff. Good luck!</p>
+]]></description>
+            <link>http://realgorithm.io//2018/04/simple-dev-environment-with-docker-compose</link>
+            <guid isPermaLink="true">http://realgorithm.io//2018/04/simple-dev-environment-with-docker-compose</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Wed, 11 Apr 2018 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Deploying an app to Elastic Beanstalk with Codeship]]></title>
+            <description><![CDATA[<p>Codeship provides some docs on how to set up a deployment to AWS (Amazon Web Services) EB (Elastic Beanstalk) <a href="https://documentation.codeship.com/basic/continuous-deployment/deployment-to-elastic-beanstalk/">here</a>. I didn&#39;t find them great since they assumed a lot of knowledge I didn&#39;t have. I know I&#39;ll have to do this again so here I am writing down all the steps I had to follow to get this to work. </p>
+<p><em>Disclaimer: I can&#39;t claim any of this is best practice. Just what I figured out as I went along. I don&#39;t run critical large scale applications on AWS. Just simple apps and side projects. If you see mistakes or things that could be done better, it would be amazing if you could comment and let me know.</em></p>
+<p>For this first step I will be deploying a simple nodejs application using the pre-configured Node.js platform on EB. The instructions should be basically the same for any other platform on EB though.</p>
+<h2 id="assumptions">Assumptions</h2>
+<ul>
+<li>You&#39;re using Codeship or some other similar CI (Continuous Integration) system (that system should allow you to configure an EB deployment as we won&#39;t be looking in to how to deploy with the aws tools directly).</li>
+<li>You have an <a href="http://aws.amazon.com">AWS</a> account and are aware of pricing etc. If you&#39;re in your free trial this should all be free but might cost you a little otherwise.</li>
+<li>You have the ability to add a user with <a href="https://aws.amazon.com/iam/">IAM</a>.</li>
+<li>You can create an EB application.</li>
+</ul>
+<h2 id="checklist">Checklist</h2>
+<p>Here&#39;s the steps we will have gone through by the end of this post.</p>
+<ol>
+<li>Create an Elastic Beanstalk application &amp; environment</li>
+<li>Configure IAM with a deployment user and user group</li>
+<li>Configure a deployment pipeline</li>
+</ol>
+<p>I am going to use the AWS UI for all this. </p>
+<p><strong>Account ID and region</strong></p>
+<p>When working with AWS there are 2 values you will have that will likely be different to what I have here. Your account ID and your region. For the rest of this post, rather than calling out these in each place I am just going to use these values:</p>
+<p>AccountID: <code>123456789123</code>
+Region: <code>eu-west-1</code></p>
+<p>In all the examples I have, just replace these values with your own. </p>
+<p>You can find your account ID by selecting the dropdown with your name on the top right and viewing you account which should be at this URL: <a href="https://console.aws.amazon.com/billing/home?#/account">https://console.aws.amazon.com/billing/home?#/account</a></p>
+<h2 id="1-create-an-elastic-beanstalk-application-environment">1. Create an Elastic Beanstalk application &amp; environment</h2>
+<p>Go to your console and select Elastic Beanstalk in the services section. If your currently selected region is eu-west-1 and this is your first time creating an EB app, you will end up at a URL like this <a href="https://eu-west-1.console.aws.amazon.com/elasticbeanstalk/home?region=eu-west-1#/getting_started">https://eu-west-1.console.aws.amazon.com/elasticbeanstalk/home?region=eu-west-1#/getting_started</a></p>
+<p>Don&#39;t use the default stuff in there. Instead use the <code>Create New Application</code> link on the top right. </p>
+<p>If it&#39;s not your first time creating one, click the create new app link anyway to follow along.</p>
+<p>You will see a dialog prompting you to enter application details. Enter whatever you want there.</p>
+<p><img src="/img/eb/01-my-test-app.png" alt="my-test-app"></p>
+<p>You will end up at the screen listing any application you have created. </p>
+<p><img src="/img/eb/02-appllications-view-create-one.png" alt="appllications-view-create-one"></p>
+<p>Select the option to create a new environment for your application, either in the Actions dropdown or by clicking the <code>Create one now</code> link.</p>
+<p>Choose the Web Server option.</p>
+<p><img src="/img/eb/03-choose-env.png" alt="choose-env"></p>
+<p>Fill in the form.</p>
+<p>For this example we will use the Node.js pre-configured platform. You can use the Sample application option for Application code. We will overwrite that soon.</p>
+<p><img src="/img/eb/04-new-env-form.png" alt="new-env-form"></p>
+<p>Click the Create button and wait for you environment to be created.</p>
+<p><img src="/img/eb/05-env-creating.png" alt="env-creating"></p>
+<p>This will take a while to complete. </p>
+<p>AWS provides you with a public URL (as you saw in the create env form) so once your environment is up an running you can access it in the browser. In my case I saw this.</p>
+<p><img src="/img/eb/06-sample-app.png" alt="sample-app"></p>
+<p>If you go back to the EB view you can see the application health and there&#39;s even a button to upload new code to EB. If you didn&#39;t want a deployment pipeline you could just use that button.</p>
+<h3 id="optional-add-rds">Optional - add RDS</h3>
+<p>Just to go over how to add and use another service in EB, we will add a MySQL database to our app. This will be similar for whatever else you might want to add. I only picked RDS with MySQL since it&#39;s very simple. </p>
+<p>Go to the configuration tab for you application.</p>
+<p><img src="/img/eb/07-eb-config-tab.png" alt="eb-config-tab"></p>
+<p>Scroll down for the database card and click <code>Modify</code>. You will be presented with a form to create a new database. You can fill in the form similarly to how I have below. I have chosen the cheapest options as I will be deleting all this soon after.</p>
+<p><img src="/img/eb/08-db-config.png" alt="db-config"></p>
+<p>Once you click Save, be sure to click Apply on the next screen.</p>
+<p>Worth noting, if you already have a database in AWS, you can bind that instead of creating a new one if you wish.</p>
+<p>You can also just access any database from your app as normal but there are some advantages to using the binding in EB. One being that you get some environment variables injected so that your app can use them to connect to the database </p>
+<p>For RDS these are:</p>
+<pre class="highlight"><code class="hljs nginx"><span class="hljs-attribute">RDS_HOSTNAME</span>
+RDS_PORT
+RDS_USERNAME
+RDS_PASSWORD
+RDS_DB_NAME
+</code></pre><p>For other services you get similar things so it&#39;s really handy. You don&#39;t need to worry about securely distributing credentials to your application yourself.</p>
+<h3 id="step-1-done">Step 1 done</h3>
+<p>Now we have our EB application ready to use. This will have created an EC2 instance to host our application with Node.js setup. We also happen to have a load balancer and auto-scaling which are nice things to have although we won&#39;t use them here. You could have chosen a single instance deployment too.</p>
+<p>Next we&#39;ll look at setting up a user and user group to allow our CI system permissions for deploying our application.</p>
+<h2 id="2-configure-iam-with-a-deployment-user-and-user-group">2. Configure IAM with a deployment user and user group</h2>
+<p>For this we want to create a user group that has the correct permissions to deploy to our EB application. We will create a user for CodeShip to use. We will also set up some policies that give just enough permissions for that user group. </p>
+<p>In this section we will:</p>
+<ul>
+<li>Create a policy for S3 access</li>
+<li>Create a policy for EB access</li>
+<li>Create a deployment user group and attach the policies we created</li>
+<li>Create a deployment user for CodeShip and add them to the deployment user group</li>
+</ul>
+<h3 id="create-a-policy-for-eb-access">Create a policy for EB access</h3>
+<p>Go to the <a href="https://console.aws.amazon.com/iam/home">IAM</a> service in your AWS console. Click on the <code>Policies</code> link on the left.</p>
+<p><img src="/img/eb/09-policies-page.png" alt="policies-page"></p>
+<p>Click the <code>Create Policy</code> button. Select the JSON tab like below. </p>
+<p><img src="/img/eb/10-iam-policy.png" alt="iam-policy"></p>
+<p>Insert the following JSON, replacing my region and account ID with yours.</p>
+<pre class="highlight"><code class="hljs json">{
+    <span class="hljs-attr">"Version"</span>: <span class="hljs-string">"2012-10-17"</span>,
+    <span class="hljs-attr">"Statement"</span>: [
+        {
+            <span class="hljs-attr">"Effect"</span>: <span class="hljs-string">"Allow"</span>,
+            <span class="hljs-attr">"Action"</span>: [
+                <span class="hljs-string">"autoscaling:ResumeProcesses"</span>,
+                <span class="hljs-string">"elasticloadbalancing:RegisterTargets"</span>,
+                <span class="hljs-string">"autoscaling:SuspendProcesses"</span>,
+                <span class="hljs-string">"elasticloadbalancing:DeregisterTargets"</span>,
+                <span class="hljs-string">"elasticbeanstalk:CreateApplicationVersion"</span>,
+                <span class="hljs-string">"elasticbeanstalk:DeleteApplicationVersion"</span>,
+                <span class="hljs-string">"ec2:DescribeImages"</span>,
+                <span class="hljs-string">"elasticbeanstalk:DescribeEnvironments"</span>,
+                <span class="hljs-string">"autoscaling:DescribeScalingActivities"</span>,
+                <span class="hljs-string">"autoscaling:DescribeAutoScalingGroups"</span>,
+                <span class="hljs-string">"elasticloadbalancing:DescribeTargetHealth"</span>,
+                <span class="hljs-string">"elasticbeanstalk:UpdateEnvironment"</span>,
+                <span class="hljs-string">"elasticloadbalancing:DescribeInstanceHealth"</span>,
+                <span class="hljs-string">"ec2:DescribeKeyPairs"</span>,
+                <span class="hljs-string">"elasticloadbalancing:DeregisterInstancesFromLoadBalancer"</span>,
+                <span class="hljs-string">"elasticloadbalancing:RegisterInstancesWithLoadBalancer"</span>
+            ],
+            <span class="hljs-attr">"Resource"</span>: <span class="hljs-string">"*"</span>
+        },
+        {
+            <span class="hljs-attr">"Effect"</span>: <span class="hljs-string">"Allow"</span>,
+            <span class="hljs-attr">"Action"</span>: [
+                <span class="hljs-string">"sns:ListSubscriptionsByTopic"</span>,
+                <span class="hljs-string">"sns:GetTopicAttributes"</span>,
+                <span class="hljs-string">"sns:CreateTopic"</span>,
+                <span class="hljs-string">"cloudformation:DescribeStackResources"</span>,
+                <span class="hljs-string">"s3:CreateBucket"</span>,
+                <span class="hljs-string">"s3:ListBucket"</span>,
+                <span class="hljs-string">"cloudformation:DescribeStackResource"</span>,
+                <span class="hljs-string">"s3:GetBucketPolicy"</span>,
+                <span class="hljs-string">"s3:PutObject"</span>,
+                <span class="hljs-string">"s3:GetObjectAcl"</span>,
+                <span class="hljs-string">"s3:GetObject"</span>,
+                <span class="hljs-string">"cloudformation:GetTemplate"</span>,
+                <span class="hljs-string">"cloudformation:UpdateStack"</span>,
+                <span class="hljs-string">"sns:Subscribe"</span>,
+                <span class="hljs-string">"s3:DeleteObject"</span>,
+                <span class="hljs-string">"s3:PutObjectAcl"</span>
+            ],
+            <span class="hljs-attr">"Resource"</span>: [
+                <span class="hljs-string">"arn:aws:sns:eu-west-1:123456789123:*"</span>,
+                <span class="hljs-string">"arn:aws:s3:::elasticbeanstalk-eu-west-1-123456789123"</span>,
+                <span class="hljs-string">"arn:aws:s3:::elasticbeanstalk-eu-west-1-123456789123/*"</span>,
+                <span class="hljs-string">"arn:aws:cloudformation:eu-west-1:123456789123:*"</span>
+            ]
+        }
+    ]
+}
+</code></pre><p>Click review policy and fill out the next form. Fill in detail that make sense to you and will make it easy to find the policy later.</p>
+<p><img src="/img/eb/11-eb-iam-review.png" alt="eb-iam-review"></p>
+<h3 id="create-a-deployment-user">Create a deployment user</h3>
+<p>In the IAM console, click the Users link on the left menu and click the Add user button. </p>
+<p>Create a user to use in your CI system (I am calling mine codeship-deployer since I am using CodeShip). Select the Programmatic access option.</p>
+<p><img src="/img/eb/12-new-user.png" alt="new-user"></p>
+<h3 id="create-a-deployment-user-group">Create a deployment user group</h3>
+<p>Rather than give the user permissions directly, it can make sense to use a user group instead. This makes life a little easier if you end up wanting to add more CI systems with their own users or something like that.</p>
+<p>In the IAM console, click the Groups option on the left. Click the Create New Group button. </p>
+<p>Give the group a sensible name. I just called mine Deployment. </p>
+<p>In the user group menu, select the Permissions tab and click Attach Policy. </p>
+<p><img src="/img/eb/13-attach-policy.png" alt="attach-policy"></p>
+<p>Find the policies we created earlier and attach them.</p>
+<p><img src="/img/eb/14-policies-to-add.png" alt="policies-to-add"></p>
+<h3 id="access-keys">Access Keys</h3>
+<p>Before we go on to the next step, you will need to get access keys for the user we created. For this, select the user by clicking on any hyperlink with the user name or navigating to the user in the users menu. Select the Security credentials tab for the user You should end up at a URL like this <a href="https://console.aws.amazon.com/iam/home?region=eu-west-1#/users/codeship-deployer?section=security_credentials">https://console.aws.amazon.com/iam/home?region=eu-west-1#/users/codeship-deployer?section=security_credentials</a></p>
+<p>Click on <code>Create Access Key</code>. You will be shown an Access key ID and Secret access key. Keep this for the next step where we will configure our pipeline and will have to provide these keys.</p>
+<p><img src="/img/eb/15-keys.png" alt="keys"></p>
+<h2 id="3-configure-a-deployment-pipeline-with-codeship">3. Configure a deployment pipeline with CodeShip</h2>
+<p>I will be using CodeShip specifically here but I guess the instructions would be reasonably similar for other tools too. I am going to assume you have a project setup and all you have left to do is configure a deployment. Select the deploy option in project settings and select Amazon ELastic Beanstalk.</p>
+<p><img src="/img/eb/16-cs-deploy.png" alt="cs-deploy"> </p>
+<p>You will be shown a form to fill in. If you have followed along so far you should have all the values you need for this ready to go. Fill in the form similar to what I have here.</p>
+<p><img src="/img/eb/17-cs-eb-fill-in.png" alt="cs-eb-fill-in"></p>
+<p>The <code>AWS Access Key ID</code> and <code>AWS Secret Access Key</code> are the keys we generated for the deployment user. The <code>Region</code> is whatever region you created your EB stuff in. The <code>Application</code> is the name of the EB application we created. The <code>Environment</code> is the name of the environment we created for the application. The <code>S3 Bucket</code> is the name of the bucket being used by EB to store application resources.</p>
+<p>Now you can run your deployment pipeline. You probably need to push something to the branch you have configured to deploy.</p>
+<p><strong>One little gotcha</strong></p>
+<p>The first time I ran my pipeline I go this.</p>
+<p><img src="/img/eb/18-gotcha.png" alt="gotcha"></p>
+<p>To fix it I went in to the deployment menu in my EB app, removed the sample app and deployed the new app that Codeship had put there. The pipeline worked from then on. I presume I missed some step somewhere or perhaps I should have uploaded the app I was going to deploy in the earlier steps instead of selecting the Sample App. </p>
+<h2 id="testing-things-out">Testing things out</h2>
+<p>Your app should now be available to test. For me the public URL for my app was here.</p>
+<p>mytestapp.eu-west-1.elasticbeanstalk.com</p>
+<p>For you it will be the name of you app without hyphens + your region + .elasticbeanstalk.com </p>
+<p>Hit the URL to make sure the app is running. </p>
+<p>You can go in and check out application logs.</p>
+<p><img src="/img/eb/19-env.png" alt="env"></p>
+<p>If I hit issues deploying my app, I usually add a bunch of logging for things like the database connection or any other environment specific stuff and can check what is being picked up in those logs. Haven&#39;t come up with a better way than that yet.</p>
+<p>That&#39;s it. I hope it all worked out for you and you were able to get a deployment pipeline going. Please feel free to give any feedback or ask any questions in the comments section below.</p>
+]]></description>
+            <link>http://realgorithm.io//2018/03/elastic-beanstalk-with-codeship</link>
+            <guid isPermaLink="true">http://realgorithm.io//2018/03/elastic-beanstalk-with-codeship</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Mon, 26 Mar 2018 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[The Church]]></title>
+            <description><![CDATA[<p><em>I started having very vivid dreams at one point. I decided to start writing them down as soon as I woke up before they slipped away. This one was from August 8th, 2017 in Stockholm.</em></p>
+<p>I am in a park with my laptop. I call someone to meet me in a nearby church. Then it seems I call someone else to meet me at the same time. For some reason this is a mistake. These people should not meet each other.</p>
+<p>I go to the church for the meeting, only to realize I am not dressed. I have some kind of rags on. Then I see one of the people I am supposed to meet later at the church but do not talk to them. I run away to find some clothes. </p>
+<p>I run back to the park bench where I left my laptop and some clothes. I feel a moment of panic worrying that someone might have stolen my laptop but when I get back everything is just as I left it. </p>
+<p>I open my laptop and begin doing something. After a while I realize I have forgotten to meet the people. I begin to dress myself quickly and clumsily. Then one of the people I am supposed to meet shows up at the bench. I splutter out some aplogies as I still try to dress myself. They laugh and seem to be fine about it. </p>
+<p>Meanwhile I keep worrying about the other person in the church. I struggle to recall who they are or why I can&#39;t show up with the person I am currently with (whoever they are). I feel a deep guilt and concern that I have left them waiting for me. Then I wake up.</p>
+]]></description>
+            <link>http://realgorithm.io//2018/03/the-church</link>
+            <guid isPermaLink="true">http://realgorithm.io//2018/03/the-church</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Mon, 19 Mar 2018 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Spider Children]]></title>
+            <description><![CDATA[<p><em>I started having very vivid dreams at one point. I decided to start writing them down as soon as I woke up before they slipped away. This one was from August 6th, 2017 in Stockholm.</em></p>
+<p>Very heavy night of dreams this night. Most of them forgotten. </p>
+<p>There was one where I was with a group of friends from many years ago. Can&#39;t remember what was happening, only the feeling of what it was like to be around them all again.</p>
+<p>One dream was about me apparently doing something bad. I appeared to have a large stash of weapons and cash and something was coming to a head. I had a strong impending sense of doom. I recall bragging about all the ill gotten stuff I had. All my stuff was held in fairly silly hidden compartments in a large room. The compartments could be opened by doing things such as moving a book in a bookshelf or stepping on a particular tile. Despite the bragging, I felt very concerned about something but I couldn&#39;t figure out what.  </p>
+<p>Then there were two, black widow like, poisonous spiders and it appears they were somehow my children.</p>
+<p>Unsure why or with who but there was a large battle. People were fighting and dying everywhere. I was involved. I got wounded.</p>
+<p>When the battle ended I was surrounded by people I knew. I was in pain and dying from my wounds. My spider children came to me. I had seen them bite and kill others. I asked them to bite me. Apparently what would be a painless death to end my suffering. I had an almost overwhelming sense of love and affection for them as they bit me. Then I woke up.</p>
+]]></description>
+            <link>http://realgorithm.io//2018/03/spider-children</link>
+            <guid isPermaLink="true">http://realgorithm.io//2018/03/spider-children</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Tue, 06 Mar 2018 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Where to put Angular with Redux]]></title>
+            <description><![CDATA[<p>I am reasonably new to Angular 2+ and have already made a bunch of bad decisions when using it with Redux. This is probably old news to most people but one thing I struggled with was how to work with Redux selectors and where to put them in components.</p>
+<p>I have dabbled with React and Redux and one thing I liked a lot was the concept of <a href="https://reactjs.org/docs/components-and-props.html">functional components</a>. That&#39;s where all the component state gets passed in as parameters and no internal modification of state is done. Therefore you can test any variation of the components behavior by modifying the inputs. </p>
+<p>If state needs to be changed, the component emits events that produce actions that alter the application state. Any interaction with external things like the Redux store would happen in container components where you bind the inputs and outputs for any child components. </p>
+<p>Good terms for these concepts that I came across in <a href="https://medium.com/@dan_abramov/smart-and-dumb-components-7ca2f9a7c7d0">a post by Dan Abramov</a> are Presentation and Container components. Presentation components being the simple components that take state as inputs and present it. Container components being the components that manage interaction with the likes of Redux and provide inputs to presentational components. </p>
+<p>I recently started working on a reasonably large angular project. I struggled with finding good examples and developing a good idea of where things should go to keep the code base clean.</p>
+<p>One thing that caught me out a lot was how coupled the component code was to Redux, or at least <a href="https://github.com/angular-redux/store">ng2-redux</a>. This code base is making heavy use of the <a href="https://github.com/angular-redux/store/blob/master/articles/select-pattern.md">select pattern</a> A typical component in the code base might look something like this, taking a really simple and made-up user list as an example.</p>
+<pre class="highlight"><code class="hljs javascript">
+@Component({
+  <span class="hljs-attr">selector</span>: <span class="hljs-string">'app-users'</span>,
+  <span class="hljs-attr">templateUrl</span>: <span class="hljs-string">'./users.component.html'</span>
+})
+<span class="hljs-keyword">export</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">UsersComponent</span> <span class="hljs-title">implements</span> <span class="hljs-title">OnInit</span> </span>{
+
+  @select([<span class="hljs-string">'userManagement'</span>, <span class="hljs-string">'users'</span>]) users$: Observable&lt;User[]&gt;;
+
+  <span class="hljs-keyword">constructor</span>(private userManagementActions: UserManagementActions) {
+  }
+
+  @dispatch()
+  ngOnInit() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.userManagementActions.fetchUsers();
+  }
+
+}
+
+</code></pre>
+<p>And a simple template for that.</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">li</span> *<span class="hljs-attr">ngFor</span>=<span class="hljs-string">"let user of (users$ | async)"</span>&gt;</span>
+    {{ user.name }}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+</code></pre>
+<p>There&#39;s nothing particularly wrong with this. It will work fine. </p>
+<p>From a design and clean code perspective, issues can start to crop up when this component is used in other components and if this component is going to get used in more that one place.</p>
+<p>Let&#39;s look at how we might test this component.</p>
+<pre class="highlight"><code class="hljs javascript">describe(<span class="hljs-string">'UsersComponent'</span>, () =&gt; {
+  <span class="hljs-keyword">let</span> component: UsersComponent;
+  <span class="hljs-keyword">let</span> fixture: ComponentFixture&lt;UsersComponent&gt;;
+  <span class="hljs-keyword">let</span> userManagementActions: UserManagementActions;
+  <span class="hljs-keyword">let</span> element: HTMLElement;
+  <span class="hljs-keyword">let</span> ngRedux;
+  <span class="hljs-keyword">let</span> usersSelector;
+
+  beforeEach(<span class="hljs-keyword">async</span>(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    TestBed.configureTestingModule({
+      <span class="hljs-attr">imports</span>: [NgReduxTestingModule],
+      <span class="hljs-attr">declarations</span>: [UsersComponent],
+      <span class="hljs-attr">providers</span>: [UserManagementActions]
+    })
+    .compileComponents();    
+  }));
+
+  beforeEach(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    MockNgRedux.reset();
+    usersSelector = MockNgRedux.getSelectorStub([<span class="hljs-string">'userManagement'</span>, <span class="hljs-string">'users'</span>]);
+    ngRedux = TestBed.get(NgRedux);
+    spyOn(ngRedux, <span class="hljs-string">'dispatch'</span>);
+
+    fixture = TestBed.createComponent(UsersComponent);
+    userManagementActions = TestBed.get(UserManagementActions);
+    component = fixture.componentInstance;
+    element = fixture.debugElement.nativeElement;
+
+    fixture.detectChanges();
+  });
+
+  it(<span class="hljs-string">'should dispatch fetchUsers action'</span>, () =&gt; {
+    expect(ngRedux.dispatch).toHaveBeenCalledWith(userManagementActions.fetchUsers());
+  });
+
+  it(<span class="hljs-string">'should render users'</span>, () =&gt; {
+    usersSelector.next([{<span class="hljs-attr">id</span>: <span class="hljs-string">'one'</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">'First'</span>}, {<span class="hljs-attr">id</span>: <span class="hljs-string">'two'</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">'Second'</span>}]);
+    fixture.detectChanges();
+
+    <span class="hljs-keyword">const</span> userElements = element.querySelectorAll(<span class="hljs-string">'li'</span>);
+
+    expect(userElements[<span class="hljs-number">0</span>].textContent).toContain(<span class="hljs-string">'First'</span>);
+    expect(userElements[<span class="hljs-number">1</span>].textContent).toContain(<span class="hljs-string">'Second'</span>);
+  });
+
+});
+
+</code></pre>
+<p>It&#39;s a really simple component but there is still a fairly large amount of boilerplate test setup code there. Also, we have really embedded Redux in to that component. The test needs to do a lot of mocking. We need to mock Redux, verify we dispatch an action on initialization, mock what comes from the store and test that we render that correctly. </p>
+<p>What if we need an almost identical component but want to dispatch a slightly different action on initialization? </p>
+<p>Doing all this setup for every component test gets to be a bit of a drag.</p>
+<p>There&#39;s just a bunch of issues with doing components this way I think but it still seems to be a common pattern. </p>
+<p>The solution to avoid these issues may be really obvious to most but I had to struggle a bit before arriving at it.</p>
+<h2 id="presentation-components">Presentation Components</h2>
+<p>We don&#39;t have the functional syntax for components that React has in Angular but we have something similar. </p>
+<p>Angular components have the <a href="https://angular.io/api/core/Input">@Input()</a> and <a href="https://angular.io/api/core/Output">@Output()</a> property decorators. These allow us to take all the required state as inputs and emit any internal events as outputs. If we emit an event to update the Redux store for example, the inputs can be changed in the container and the components can be re-rendered. This way the component only needs to know how to present the input state and what to emit on an interaction. </p>
+<p>We could instead write the component like this.</p>
+<pre class="highlight"><code class="hljs javascript">@Component({
+  <span class="hljs-attr">selector</span>: <span class="hljs-string">'app-users'</span>,
+  <span class="hljs-attr">templateUrl</span>: <span class="hljs-string">'./users.component.html'</span>,
+  <span class="hljs-attr">changeDetection</span>: ChangeDetectionStrategy.OnPush
+})
+<span class="hljs-keyword">export</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">UsersComponent</span> </span>{
+
+  @Input()
+  users: User[] = [];
+
+}
+</code></pre>
+<p>The template would be updated to look like this (just removing the async pipe).</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">ul</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">li</span> *<span class="hljs-attr">ngFor</span>=<span class="hljs-string">"let user of users"</span>&gt;</span>
+    {{ user.name }}
+  <span class="hljs-tag">&lt;/<span class="hljs-name">li</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">ul</span>&gt;</span>
+</code></pre>
+<p>The tests get a bit easier for that component then. Just set the value of the input add test the rendering. </p>
+<pre class="highlight"><code class="hljs javascript">describe(<span class="hljs-string">'UsersComponent'</span>, () =&gt; {
+  <span class="hljs-keyword">let</span> component: UsersComponent;
+  <span class="hljs-keyword">let</span> fixture: ComponentFixture&lt;UsersComponent&gt;;
+  <span class="hljs-keyword">let</span> element: HTMLElement;
+
+  beforeEach(<span class="hljs-keyword">async</span>(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    TestBed.configureTestingModule({
+      <span class="hljs-attr">declarations</span>: [UsersComponent]
+    })
+      .compileComponents();
+  }));
+
+  beforeEach(<span class="hljs-function"><span class="hljs-params">()</span> =&gt;</span> {
+    fixture = TestBed.createComponent(UsersComponent);
+    component = fixture.componentInstance;
+    element = fixture.debugElement.nativeElement;
+  });
+
+  it(<span class="hljs-string">'should render users'</span>, () =&gt; {
+    component.users = [{<span class="hljs-attr">id</span>: <span class="hljs-string">'one'</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">'First'</span>}, {<span class="hljs-attr">id</span>: <span class="hljs-string">'two'</span>, <span class="hljs-attr">name</span>: <span class="hljs-string">'Second'</span>}];
+    fixture.detectChanges();
+
+    <span class="hljs-keyword">const</span> userElements = element.querySelectorAll(<span class="hljs-string">'li'</span>);
+
+    expect(userElements[<span class="hljs-number">0</span>].textContent).toContain(<span class="hljs-string">'First'</span>);
+    expect(userElements[<span class="hljs-number">1</span>].textContent).toContain(<span class="hljs-string">'Second'</span>);
+  });
+
+});
+</code></pre>
+<p>There&#39;s a lot less boilerplate and I think the tests are a lot cleaner since we are not mocking or stubbing internal state.</p>
+<p>Because we have kept the component so simple and with less dependencies it is easier to test and also much more reusable than if we used those Redux selectors directly. </p>
+<h4 id="changedetection-changedetectionstrategy-onpush">changeDetection: ChangeDetectionStrategy.OnPush</h4>
+<p>You may have noticed we set the <a href="https://angular.io/api/core/ChangeDetectionStrategy">changeDetection</a> property for the component. This is something we should try to use when writing our components this way. When we set this we are saying we will not change the inputs internally. This allows a little optimization because Angular won&#39;t check the internal state to see if it needs to update the rendering. Therefore if you change the state internally, the updates will not get picked up for rendering. The change detection strategy checks the reference of the input and if that has not changed, it does nothing. This makes it work well with Redux since we will always bring back a new reference from the store if there was a change. </p>
+<h2 id="container-components">Container Components</h2>
+<p>We can&#39;t avoid having dependencies between Redux and our components completely but we can keep it in container components. </p>
+<p>Say you have a component representing a page that contains a list of users and maybe something else. That could be the Container component since it probably won&#39;t have any complicated things to do itself. For example:</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">some-other-thing</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">some-other-thing</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">app-users</span> [<span class="hljs-attr">users</span>]=<span class="hljs-string">"users$ | async"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">app-users</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre>
+<pre class="highlight"><code class="hljs javascript">@Component({
+  <span class="hljs-attr">selector</span>: <span class="hljs-string">'app-user-management'</span>,
+  <span class="hljs-attr">templateUrl</span>: <span class="hljs-string">'./user-management.component.html'</span>
+})
+<span class="hljs-keyword">export</span> <span class="hljs-class"><span class="hljs-keyword">class</span> <span class="hljs-title">UserManagementComponent</span> <span class="hljs-title">implements</span> <span class="hljs-title">OnInit</span> </span>{
+
+  @select([<span class="hljs-string">'userManagement'</span>, <span class="hljs-string">'users'</span>]) users$: Observable&lt;User[]&gt;;
+
+  <span class="hljs-keyword">constructor</span>(private userManagementActions: UserManagementActions) {
+  }
+
+  @dispatch()
+  ngOnInit() {
+    <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.userManagementActions.fetchUsers();
+  }
+
+}
+</code></pre>
+<p>Now we only need to test the Redux related things there (with all the mocking and boilerplate setup code), keeping the child components simple.</p>
+<p>In React the tendency is to have one container component for each presenter with the container having no makeup of its own. This is another potential pattern to try out here.</p>
+<h2 id="interactions">Interactions</h2>
+<p>What if you need a component to dispatch and action to the store?</p>
+<p>So lets say the user list has a delete button and on clicking it, you want to fire off an action to delete that user. </p>
+<pre class="highlight"><code class="hljs javascript">@dispatch()
+deleteUser(user: User) {
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">this</span>.userManagementActions.deleteUser(user);
+}
+</code></pre>
+<p>You could add that to the UsersComponent but then you&#39;re back to adding all that Redux test stuff. Instead it might be good to emit that event using an Output. </p>
+<pre class="highlight"><code class="hljs javascript">@Output()
+onDeleteUser: EventEmitter&lt;User&gt; = <span class="hljs-keyword">new</span> EventEmitter&lt;User&gt;();
+
+deleteUser(user: User) {
+  <span class="hljs-keyword">this</span>.onDeleteUser.emit(user);
+}
+</code></pre>
+<p>Now we can dispatch the action in the container by listening for that event.</p>
+<pre class="highlight"><code class="hljs xml"><span class="hljs-tag">&lt;<span class="hljs-name">div</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">some-other-thing</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">some-other-thing</span>&gt;</span>
+  <span class="hljs-tag">&lt;<span class="hljs-name">app-users</span> [<span class="hljs-attr">users</span>]=<span class="hljs-string">"users$ | async"</span> (<span class="hljs-attr">onDeleteUser</span>)=<span class="hljs-string">"deleteUser($event)"</span>&gt;</span><span class="hljs-tag">&lt;/<span class="hljs-name">app-users</span>&gt;</span>
+<span class="hljs-tag">&lt;/<span class="hljs-name">div</span>&gt;</span>
+</code></pre>
+<h2 id="conclusion">Conclusion</h2>
+<p>I am definitely finding Angular code easier to understand and test using this technique. It&#39;s still not great but it&#39;s a bit more manageable. Angular and Redux are both fine tools but, like any code bases, the code base using them can start to get pretty messy unless some decent patterns are used. The Container &amp; Presenter pattern is a good one for this scenario I believe.</p>
+<p>Some runnable example code for the above is here: <a href="https://github.com/ruairitobrien/angular-demo-code/tree/master/src/app/user-management">https://github.com/ruairitobrien/angular-demo-code/tree/master/src/app/user-management</a></p>
+]]></description>
+            <link>http://realgorithm.io//2018/03/where-to-put-redux</link>
+            <guid isPermaLink="true">http://realgorithm.io//2018/03/where-to-put-redux</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Mon, 05 Mar 2018 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[The Terror Hotel]]></title>
+            <description><![CDATA[<p><em>I started having very vivid dreams at one point. I decided to start writing them down as soon as I woke up before they slipped away. This one was from August 4th, 2017 in Stockholm.</em></p>
+<p>I was in a hotel. Not fully sure with who but I know my partner and son were there. </p>
+<p>It was a weird and complex hotel. Incredibly difficult to explain. Many levels, winding stairs. Doors that looked like exits but only lead to other halls. </p>
+<p>There was a terrorist attack. Well, the only indication of an attack was a man shouting in what sounded to me like arabic. I don&#39;t recall any other indication but somehow concluded we were in the middle of a terrorist attack and we all started running in fear. </p>
+<p>The escape was chaotic. I found myself running through fake exits, all the whie trying to make sure everyone with me was ok. Eventually we escaped the hotel  and took refuge in what seems to have been a house.</p>
+<p>Once in the house, my son went to the kitchen with another child (not sure who the child was but possibly my niece). I waited by the front door, I think keeping watch for terrorists.</p>
+<p>Suddenly the house started to kind of, tip over. I lost my footing and began falling towards the back wall. I was consumed with fear about what was happening to my son in the kitchen. I tried desperately to get to him but movement was weirdly awkward and I couldn&#39;t make progress. That strange dream sensation where you lose all physical power. Then I woke up.</p>
+]]></description>
+            <link>http://realgorithm.io//2018/03/terror-hotel</link>
+            <guid isPermaLink="true">http://realgorithm.io//2018/03/terror-hotel</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Sun, 04 Mar 2018 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Does Test Driven Development Work?]]></title>
+            <description><![CDATA[<h2 id="introduction">Introduction</h2>
+<p><a href="https://en.wikipedia.org/wiki/Bertrand_Russell">Bertrand Russell</a> was concerned about the issue of having to accept certain axioms to be able to proceed with an education in mathematics even though those axioms had not necessarily been rigorously proven. He treats aspects of this in his book <a href="https://people.umass.edu/klement/imp/imp-ebk.pdf">An Introduction to Mathematical Philosophy</a>. An example that is given in the <a href="http://www.bbc.co.uk/programmes/b01p8fsr">In Our Time Episode</a> about Bertrand Russell is, for any two points in space there exists a line between those two points. This is intuitive but no proof existed of the truth of it. One major problem with a lack of proof is that, even if something might be intuitive, it is possible to argue that thing is not intuitive to you, or some other answer is more intuitive and there is no proof to appeal to that says an argument is right or wrong.</p>
+<p>A question that will be explored in this post is, do we have any proof that Test Driven Development (TDD) works?</p>
+<p>What does ‘Work’ mean in this context? Two measurements often used are:</p>
+<ul>
+<li>Productivity</li>
+<li>Code Quality</li>
+</ul>
+<p>Does practising TDD mean a real improvement in productivity or code quality? Just measuring productivity or code quality is difficult enough.</p>
+<p>In this post, we will look at some of the discussion going on around TDD in the industry and some of the efforts made to evaluate TDD in a scientific way.</p>
+<h2 id="opinions-in-industry">Opinions in Industry</h2>
+<p>Before we look at scientific studies and data, it&#39;s worth going over some well known and subjective discussions around TDD for context.</p>
+<p><a href="https://en.wikipedia.org/wiki/Kent_Beck">Kent Beck</a> is <a href="https://en.wikipedia.org/wiki/Test-driven_development">credited with having developed or &#39;rediscovered&#39;</a> TDD somewhere around 1999. Since then there have been many proponents of TDD and a <a href="https://www.amazon.com/s/ref=nb_sb_ss_i_1_14?url=search-alias%3Dstripbooks&amp;field-keywords=test+driven+development&amp;sprefix=test+driven+de%2Cstripbooks%2C218&amp;crid=2ADA7QMBPC5FP">multitude of books</a> on the subject. There is certainly a vocal group in the industry that claims TDD is critically important to writing good software.</p>
+<p><a href="http://david.heinemeierhansson.com/">David Heinemeier Hansson</a> (whose name is often abbreviated to DHH) is the creator of <a href="http://rubyonrails.org/">Ruby on Rails</a> expressed what seems to be a fairly widely held opinion against TDD in his blog post <a href="http://david.heinemeierhansson.com/2014/tdd-is-dead-long-live-testing.html">TDD is dead. Long live testing</a>. An interesting aspect of that post is the point of view is taken that TDD has somehow won to become accepted as the right way to do development in the industry and is even causing harm. The post was written a few years ago now but the arguments don&#39;t appear to have changed too much.</p>
+<p>In my personal experience, TDD is not generally accepted as a necessary process in software development and is rarely mandated. There is a lot of debate and while being a practitioner of TDD is not looked down upon, it is not generally seen as being important or necessarily correct. This differs between software teams of course but in general, this is my experience. It is very common at standups I have attended to hear developers say things like, &#39;I am done but just need to add tests now&#39;. In conversations like this, I have never heard anyone suggest the TDD process should have been used. It is left to the individual developers to decide that for the most part.</p>
+<p><a href="https://en.wikipedia.org/wiki/Robert_Cecil_Martin">Bob Martin</a> can be a polarizing individual but he is an important proponent of TDD. He attempts to refute DHH&#39;s points in his post <a href="https://8thlight.com/blog/uncle-bob/2014/04/30/When-tdd-does-not-work.html">When TDD doesn’t work</a>.</p>
+<p>A reference within the original &#39;TDD is dead&#39; post is the article <a href="http://rbcs-us.com/documents/Why-Most-Unit-Testing-is-Waste.pdf">Why Most Unit Testing is Waste</a> by <a href="https://en.wikipedia.org/wiki/Jim_Coplien">Jim Coplien </a> which is discussed in the video where <a href="https://www.youtube.com/watch?v=KtHQGs3zFAM">Jim Coplien and Bob Martin Debate TDD</a>.</p>
+<p>The TDD is dead subject also led to a long discussion between <a href="https://www.facebook.com/kentlbeck">Kent Beck</a>, <a href="http://www.martinfowler.com/">Martin Fowler</a> and <a href="http://david.heinemeierhansson.com/">David Heinemeier Hansson</a> which is quite entertaining and can be watched here if you are interested:</p>
+<ul>
+<li><a href="https://www.youtube.com/watch?v=z9quxZsLcfo">TW Hangouts | Is TDD dead? - YouTube</a></li>
+<li><a href="https://www.youtube.com/watch?v=JoTB2mcjU7w">TW Hangouts | Is TDD dead? Part II - YouTube</a></li>
+<li><a href="https://www.youtube.com/watch?v=YNw4baDz6WA">TW Hangouts | Is TDD dead? Part III - YouTube</a></li>
+<li><a href="https://www.youtube.com/watch?v=gWD6REVeKW4">TW Hangouts | Is TDD dead? Part V &amp; VI - YouTube</a></li>
+</ul>
+<p>One interesting detail in those videos was the discussion around a pleasurable workflow and if there is a notable distinction in this area between a mind that prefers to write a test to begin solving a problem or a mind that prefers not to write a test until some form of solution to the problem has already been written.</p>
+<p>All this covers the input of only a few people in the industry and there are many more examples. I am pointing these out here because, despite the rich debate that took place in all these blog posts and discussions, no conclusive answers can be arrived at. It seems rare that one side convinces. That may just be the nature of things but maybe we can explore it a little deeper.</p>
+<p>In nearly all the discussions there was a consensus that automated testing is important. Most disagreements seemed to be around the perception of TDD as a process and perhaps the granularity of automated tests too.</p>
+<p>As with so many subjects in software development, a lot of the information about TDD that we share and consume is based on opinions and anecdotes. We hear about many stories from the perspective of the storyteller and we try to build up a picture of what is right so we can try to apply that to our own situations. We generally just try things to see if they work. Some data would be useful. Is it just that software development is very difficult to measure in this way? When it comes to TDD at least some efforts have been made to gather data.</p>
+<h2 id="studies-on-tdd">Studies on TDD</h2>
+<p>In 2003 a study called <a href="http://staff.unak.is/andy/MScTestingMaintenance/Homeworks/STMHeima7TestDrivenDevelopment.pdf">An Initial Investigation of Test Driven Development in
+Industry</a> was conducted with ’24 professional pair programmers’ where one group developed with TDD and another group used a more conventional (at the time) design-develop-test-debug waterfall approach. That study also references an earlier German Study that was run with 19 graduate students that concluded that</p>
+<blockquote>
+<p>test-first manner neither leads to quicker development nor provides
+an increase in quality. However, the understandability of the
+program increases, measured in terms of proper reuse of existing
+interfaces.</p>
+</blockquote>
+<p>There were a lot of limitations to that study which the 2003 study were trying to address.</p>
+<p>According to the George and Williams paper, the TDD group produced code that passed 18% more functional black box test cases but took 16% more time for development.</p>
+<blockquote>
+<p>A hypothesis of this research was that the TDD approach would yield code with superior external code quality. Based on the data analysis conducted, the experimental findings are supportive that the TDD approach yields code with superior external code quality. However, the validity of the results must be considered within the context of the limitations discussed in external validity section.</p>
+</blockquote>
+<p>There were also some interesting findings on the lack of testing done by the control group. Not practising TDD appeared to cause a leaning towards a lack of testing in general.</p>
+<p>This study had many limitations but it was still a good effort to gather some real data on how TDD might work in the industry. In terms of proof that TDD works or not, this study is far from that.</p>
+<p>An interesting paper to look at is <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.94.9412&amp;rep=rep1&amp;type=pdf">Janzen, D. S., (2006). An Empirical Evaluation of the Impact of
+Test-Driven Development on Software Quality</a> which looks at other studies and does analysis on data gathered by them. This is a long paper and I won&#39;t repeat much of it here but I will highlight some interesting data and points from it. The data is interesting but it is worth keeping in mind the data is from the early 2000&#39;s with relatively small sample sizes.</p>
+<p>Below are tables with summaries of findings from various papers referenced in <a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.94.9412&amp;rep=rep1&amp;type=pdf">Janzen, D. S., (2006)</a></p>
+<p>Type (CE) is a controlled experiment and (CS) is a case study.</p>
+<h4 id="in-industry">In Industry</h4>
+<table>
+<thead>
+<tr>
+<th>Study</th>
+<th>Type</th>
+<th>No.of Companies</th>
+<th>No. of Programmers</th>
+<th>Quality Effects</th>
+<th>Productivity Effects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://pdfs.semanticscholar.org/616d/3f7e831c725b51220a34fbee3ca6ac1d711c.pdf">George</a></td>
+<td>CE</td>
+<td>3</td>
+<td>24</td>
+<td>TDD passed 18% more tests</td>
+<td>TDD took 16% longer</td>
+</tr>
+<tr>
+<td><a href="http://faculty.salisbury.edu/~xswang/Research/Papers/SERelated/TDD/p564-maximilien.pdf">Maximilien</a></td>
+<td>CS</td>
+<td>1</td>
+<td>9</td>
+<td>50% reduction in defect density</td>
+<td>minimal impact</td>
+</tr>
+<tr>
+<td><a href="http://ieeexplore.ieee.org/document/1251029/">Williams</a></td>
+<td>CS</td>
+<td>1</td>
+<td>9</td>
+<td>40% reduction in defect density</td>
+<td>no change</td>
+</tr>
+</tbody>
+</table>
+<h4 id="in-academia">In Academia</h4>
+<table>
+<thead>
+<tr>
+<th>Study</th>
+<th>Type</th>
+<th>No. of Programmers</th>
+<th>Quality Effects</th>
+<th>Productivity Effects</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="http://www.cs.tufts.edu/~nr/cs257/archive/stephen-edwards/automated-feedback.pdf">Edwards</a></td>
+<td>CE</td>
+<td>59</td>
+<td>54% fewer defects</td>
+<td>n/a</td>
+</tr>
+<tr>
+<td><a href="http://dl.acm.org/citation.cfm?id=949421">Kaufmann</a></td>
+<td>CE</td>
+<td>8</td>
+<td>improved information flow</td>
+<td>50% improvement</td>
+</tr>
+<tr>
+<td><a href="http://ieeexplore.ieee.org/document/1049202/">Muller</a></td>
+<td>CE</td>
+<td>19</td>
+<td>no change, but better reuse</td>
+<td>no change</td>
+</tr>
+<tr>
+<td><a href="http://ieeexplore.ieee.org/stamp/stamp.jsp?tp=&amp;arnumber=1248175">Pancur</a></td>
+<td>CE</td>
+<td>38</td>
+<td>no change</td>
+<td>no change</td>
+</tr>
+<tr>
+<td><a href="http://ieeexplore.ieee.org/document/1423994/">Erdogmus</a></td>
+<td>CE</td>
+<td>35</td>
+<td>no change</td>
+<td>improved productivity</td>
+</tr>
+</tbody>
+</table>
+<p>The data here suggest mostly positive or neutral results from TDD. There is one exception (the previously mentioned George paper) where TDD took 16% longer than the control group but it is noted the control group wrote fewer tests in that study.</p>
+<blockquote>
+<p>The essence of TDD as a design methodology is virtually unstudied, yet scattered early adoption has proceeded based solely on anecdotal evidence.</p>
+</blockquote>
+<blockquote>
+<p>While empirical studies will rarely produce absolute repeatable results, such studies can provide evidence of causal relationships, implying results that will most likely occur in given contexts.</p>
+</blockquote>
+<p>This to me is a great point. Measurement is difficult and getting fully conclusive results for something like this is almost impossible but we can still use the evidence to help make decisions.</p>
+<blockquote>
+<p>Survey data reveals that developer opinions about the TDD process improve with TDD experience whereas opinions of test-last programming decrease.</p>
+</blockquote>
+<p>Much of the data in that paper relies on surveys. These surveys indicated that the more knowledge and experience a developer had with testing and software development in general, the more likely the developer would be of having a better experience with TDD as a process. Interesting but not a major revelation of course.</p>
+<p>A conclusion the paper arrived at:</p>
+<blockquote>
+<p>This research has demonstrated that TDD can and is likely to improve some software quality aspects at minimal cost over a comparable test-last approach. In particular it has shown statistically significant differences in the areas of code complexity, size, and testing.</p>
+</blockquote>
+<p>This conclusion seems very positive in favour of TDD. A notable issue with these studies is that the sample size is quite small, putting some doubt on the statistical significance of the results. That said, I would argue this work is better than nothing and gives us something to go on at least.</p>
+<blockquote>
+<p>This research revealed a number of differences between TDD acceptance and efficacy in beginning and mature developers.</p>
+</blockquote>
+<p>This is just an interesting observation to me. Why is there a correlation between experience and an acceptance of TDD?</p>
+<p>A similar work: <a href="http://proceedings.informingscience.org/InSITE2012/InSITE12p165-187Bulajic0052.pdf">Overview of the Test Driven Development
+Research Projects and Experiments </a> also looks at varied research papers. This one is slightly newer (2012) and included some more recent research. A significant addition is a study with IBM and Microsoft development teams.</p>
+<p>Final conclusion in this study was (Nagappan et al., 2008):</p>
+<ul>
+<li>Reducing of defect density (IBM 40%, Microsoft 60% - 90%)</li>
+<li>Increase of time taken to code feature (15% - 35%).</li>
+</ul>
+<p>Threats to the validity of the study were identified as (Nagappan et al., 2008):</p>
+<ul>
+<li>Higher motivation of developers that were using TDD methodology.</li>
+<li>The project developed by using TDD might be easier.</li>
+</ul>
+<p>The findings of that paper were less positive than Janzen&#39;s as they rightly noted the results were too varied and the sample sizes too small to draw any positive conclusions.</p>
+<p>Another <a href="http://www.ipr.mdh.se/pdf_publications/2345.pdf">controlled experiment conducted in 2012</a> once again concluded that TDD is probably a good thing but that more evidence is needed.</p>
+<p><a href="http://people.brunel.ac.uk/~csstmms/FucciEtAl_ESEM2016.pdf">Another study from 2016</a> looked at the effects of TDD compared to Test Last Development (TLD).</p>
+<blockquote>
+<p>In this paper we reported a replication of an experiment
+[13] in which TDD was compared to a test-last approach.</p>
+</blockquote>
+<p>This study seemed to lean towards a verdict that TDD doesn&#39;t improve things over TLD:</p>
+<blockquote>
+<p>Given the limitations presented in Section 5, it appears that
+TDD does not improve, nor deteriorate the participants’
+performance with respect to an iterative development technique
+in which unit tests are written after production code</p>
+</blockquote>
+<p>If you look at how the tests were conducted though you can see an interesting aspect of it is how programmers were to use iterative development. There was a fairly tight loop between test and production code for both TDD and TLD. Perhaps a tight iterative loop is more important than the order of test code?</p>
+<p>In my opinion, this paper didn&#39;t provide enough data to give a conclusion one way or the other. It certainly didn&#39;t prove TDD was better or worse than writing all your tests after writing all your production code for a decent sized project.</p>
+<p>The final study we will glance at is one I just recently came across called <a href="https://arxiv.org/pdf/1611.05994.pdf">A dissection of the test-driven development process: does it really matter to test-first or to test-last?</a> which is also by Fucci et al. This study actually appears to reach a similar conclusion to the previous study except that in this case, the programmers involved work in industry. Also, the comparisons were with iterative test last (ITL) development (which I think is a better term than TLD for this) and TDD.</p>
+<p>Another interesting conclusion in that study is that shorter cycle times (time between production code and test), to a point, do appear to lead to better quality.</p>
+<h2 id="some-conclusions">Some Conclusions</h2>
+<p>Looking at the data it is fairly easy to say the answer to the questions &#39;Does TDD Work?&#39; is inconclusive.</p>
+<p>If the question becomes more specific at least there are some answers.</p>
+<p>The evidence appears to be heavily stacked in favour of short iterative test cycles, very similar to that prescribed in TDD literature, being significantly better for code quality with minimal impact on productivity. A process of small iterations with small testable blocks of code does appear to lead to more maintainable code.</p>
+<p>Current evidence suggests that unit testing beats integration and higher level testing.</p>
+<p>There is currently very little evidence that practising TDD is bad.</p>
+<p>Whether writing a test first or last is better within a tight iterative cycle is inconclusive.</p>
+<p>Testing is a discipline that takes time to be learned before seeing the real benefits of it. That is my own observation but is supported by observations in some of the studies we looked at.</p>
+<p>Will we ever know for sure if TDD really works or not? I don&#39;t know. On a positive note, It does seem that questions like this are being asked more often these days. More rigorous study is being done. Take the book <a href="https://itrevolution.com/book/accelerate/">Accelerate</a> by <a href="http://nicolefv.com/">Nicole Forsgren</a>, <a href="https://twitter.com/jezhumble">Jez Humble</a> and <a href="https://itrevolution.com/faculty/gene-kim/">Gene Kim</a> for example. It&#39;s not about TDD specifically but it&#39;s an amazing example of the work being done to try and figure out what techniques really work in software development so at least we should have more accurate information to help us make decisions about subjects like this.</p>
+<h2 id="personal-thoughts-on-all-this">Personal Thoughts On All This</h2>
+<p>I spend a lot of time urging other developers to do TDD or at least to try it out. Usually, people will give it a go but have difficulty sticking with it. I try to explain that it is something you learn over time and when you get good at it, it’s great!</p>
+<p>It occurred to me fairly often that I might be wrong. What if I am trying to get people to invest time in something that isn’t that great. What proof is there that TDD even works? Just because it seems to work for me, it does not automatically follow it will work for everybody.</p>
+<p>That was the reason for this post. I wanted to look for proof that TDD actually works. I also wanted to read as much as I could from people who are against TDD or some aspect of it. Just because I think TDD is good I tended to avoid them and that’s not a good way to learn.</p>
+<p>I personally do think varied approaches to TDD are OK. The definition of TDD shouldn&#39;t be like some ancient text to be taken absolutely literally and never altered.</p>
+<p>To me, one of the biggest advantages (maybe the most under-appreciated advantage) of TDD is the design that it encourages. A complaint I always hear is that too many unit tests lead to code that&#39;s difficult to maintain and change. That&#39;s just a common pitfall in the learning process. Once you add TDD to your arsenal of software development techniques and learn it well, it should really help in achieving good software design. If good, clean, well-designed software is your goal, I believe TDD is something that will help really help you to achieve that.</p>
+<p>It does sometimes feel like TDD is just a little too hard though. It reminds me of trying to do functional programming in Java. If everything is designed from the beginning to facilitate TDD, it&#39;s fairly easy. That is so rare still, and trying to do TDD all the time is really difficult in the systems we have to work with. Thanks to the tools and educational material out there today, things seem to be getting better though.</p>
+<p>Despite the downsides, after everything I have read and experienced, I still consider TDD an excellent tool to have. I will keep using it and encouraging others to do the same.</p>
+<h2 id="references">References</h2>
+<p><a href="http://staff.unak.is/andy/MScTestingMaintenance/Homeworks/STMHeima7TestDrivenDevelopment.pdf">George, B., Williams, L., (2003). An Initial Investigation of Test Driven Development in Industry</a></p>
+<p><a href="http://digitalcommons.calpoly.edu/cgi/viewcontent.cgi?article=1034&amp;context=csse_fac">Janzen, D., Saiedian, S., (2005). Test-Driven Development: Concepts, Taxonomy, and Future Direction</a></p>
+<p><a href="http://citeseerx.ist.psu.edu/viewdoc/download?doi=10.1.1.94.9412&amp;rep=rep1&amp;type=pdf">Janzen, D. S., (2006). An Empirical Evaluation of the Impact of Test-Driven Development on Software Quality.</a></p>
+<p><a href="https://pdfs.semanticscholar.org/a00c/61b77e2df21b43d5e500341d5efec286c195.pdf">Sanchez, J. C., Williams, L., Maximilien, M, (2007). On the Sustained Use of a Test-Driven Development Practice at IBM</a></p>
+<p><a href="http://proceedings.informingscience.org/InSITE2012/InSITE12p165-187Bulajic0052.pdf">Bulajic, A., Sambasivam, S., Stojic, R., (2012). Overview of the Test Driven Development Research Projects and Experiments.</a></p>
+<p><a href="http://www.ipr.mdh.se/pdf_publications/2345.pdf">Causevic, A., Sundmark, D., Punnekkat, S, (2012). Impact of Test Design Technique Knowledge on Test Driven Development: A Controlled Experiment</a></p>
+<p><a href="https://tuhat.halvi.helsinki.fi/portal/files/29553974/2014_01_swqd_author_version.pdf">Mäkinen, S., Münch, J., (2014). Effects of Test-Driven Development: A Comparative Analysis of Empirical Studies</a></p>
+<p><a href="http://people.brunel.ac.uk/~csstmms/FucciEtAl_ESEM2016.pdf">Fucci, D., Scanniello, G., Romano, S., Shepperd, M., Sigweni, B., Uyaguari, F., Turhan, B., Juristo, N., Oivo, M., (2016). An External Replication on the Effects of Test-driven Development Using a Multi-site Blind Analysis Approach</a></p>
+<p><a href="http://www.martinfowler.com/articles/testing-culture.html">Goto Fail, Heartbleed, and Unit Testing Culture</a></p>
+<p><a href="https://en.wikipedia.org/wiki/Test-driven_development">Test-driven development - Wikipedia</a></p>
+<p><a href="https://arxiv.org/pdf/1611.05994.pdf">A dissection of the test-driven development process: does it really matter to test-first or to test-last? Fucci et al., ICSE (2017)</a></p>
+<p><a href="https://blog.acolyer.org/2017/06/13/a-dissection-of-the-test-driven-development-process-does-it-really-matter-to-test-first-or-test-last/">A dissection of the test-driven development process: does it really matter to test-first or test-last? | the morning paper</a></p>
+<p><a href="https://www.youtube.com/watch?v=1bZv3pSaLtY">Bertrand Russell - Face to Face Interview (BBC, 1959) - YouTube</a></p>
+<p><a href="https://www.youtube.com/watch?v=z5JQjcSfUO0">Bertrand Russell - In Our Time BBC Radio 4 - YouTube</a></p>
+<p><a href="https://www.youtube.com/watch?v=9EF4I7HM0zI">Bertrand Russell (Part 1 of 6) Authority and the Individual: Social Cohesion and Human Nature - YouTube</a></p>
+]]></description>
+            <link>http://realgorithm.io//2017/09/does-tdd-work</link>
+            <guid isPermaLink="true">http://realgorithm.io//2017/09/does-tdd-work</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Tue, 26 Sep 2017 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Introduction to Kubernetes]]></title>
+            <description><![CDATA[<p>(This is currently a work in progress)</p>
+<p>This post is a relatively short introduction to kubernetes. I wont actually be explaining what kubernetes is. That content is all available on <a href="https://kubernetes.io/">the kubernetes website</a>. This post is about using kubernetes for the first time and playing around with some of the basic features.</p>
+<p>We will look at using kubernetes in two ways. With the Google Cloud Platform (GCP) and with minikube. </p>
+<p>You can use one or the other or both, or indeed some other cloud provider but GCP and minikube ar ewhat we will use here. I recommend playing around with both GCP and minikube since it won&#39;t cost you anything. For GCP you need a Google account but you will also need a way to setup billing which pretty much means you will need a credit card. You won&#39;t have to spend money but you will need to have billing enabled in the GCP account. </p>
+<h3 id="install-the-gcp-sdk">Install the GCP SDK</h3>
+<p>Instructions here are good and cover all platforms: <a href="https://cloud.google.com/sdk/">https://cloud.google.com/sdk/</a></p>
+<p>You can also just use the cloud console in the GCP UI but I will use <code>gcloud</code> in the examples here.</p>
+<h3 id="install-kubectl">Install kubectl</h3>
+<p>Assumes you have followed the instructions above and installed <code>gcloud</code>.</p>
+<pre class="highlight"><code class="hljs bash">
+ gcloud components install kubectl
+
+</code></pre>
+<h3 id="google-cloud-platform">Google Cloud Platform</h3>
+<p>You can just skip forward and setup minikube if you prefer but I recommend using this to have something a little more &#39;real&#39;. </p>
+<p>First you need a google account. Not much point me explaining how to do that I guess. </p>
+<p>Then you will need to setup a GCP dashboard for yourself (if you haven&#39;t one already). Just open this link <a href="https://console.cloud.google.com/start">https://console.cloud.google.com/start</a> and follow the instructions. </p>
+<p><img src="/img/introkub/dashboard.png" alt="alt text" title="Dashboard"></p>
+<p>When on that page click the &#39;Create&#39; button to create a project.</p>
+<p>When selecting a name for your project try to use something globally unique to you. For example, for me I append my username.
+<img src="/img/introkub/new-project-name.png" alt="alt text" title="New Project"></p>
+<p>Notice it says &#39;Your project ID will be {the ID}&#39; and in my case the ID matches the name I specified.</p>
+<p>Beware if you use a name that has already been used somewhere else in the world, like in this example:
+<img src="/img/introkub/new-project-random-id.png" alt="alt text" title="New Project Random ID"></p>
+<p>You will get a random ID, which is a pain because whenever you need to use the ID you have to go digging for it (for some reason I keep forgetting where to find it) but the name is always visible in the UI and easier to remember.</p>
+<p>Next you will want to go the the API manager dashboard.
+<img src="/img/introkub/api-manager-menu.png" alt="alt text" title="API manager menu"></p>
+<p>Click &#39;Enable API&#39; near the top of the page.
+<img src="/img/introkub/enable-api.png" alt="alt text" title="Enable API"></p>
+<p>Select &#39;Compute Engine API&#39; (click the link under Popular APIs or search for it in the unlikely event it&#39;s not visible).
+<img src="/img/introkub/select-compute-engine.png" alt="alt text" title="Select compute engine"></p>
+<p>Then click the blue Enable button near the top.
+<img src="/img/introkub/enable-compute-engine.png" alt="alt text" title="Enable compute engine"></p>
+<p>At this point you will likely be asked to setup billing (unless you have already setup billing with GCP before).
+<img src="/img/introkub/enable-billing.png" alt="alt text" title="Enable billing"></p>
+<p>You will be offered a free trial but you still have to enter a credit card to get it. You don&#39;t really need the free trial for what we will be doing either but no harm setting it up.</p>
+<h4 id="create-a-cluster-in-gcp">Create a cluster in GCP</h4>
+<p>If you haven&#39;t authorized gcloud already, do so now like so:</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud auth login
+
+</code></pre>
+<p>That should open a browser window where you can login to your google account. </p>
+<p>Now configure the project you created (PROJECT_ID should be replaced with the ID of your project):</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud config <span class="hljs-built_in">set</span> project PROJECT_ID
+
+</code></pre>
+<p>Configure your desired zone like this:</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud config <span class="hljs-built_in">set</span> compute/zone europe-west1<span class="hljs-_">-d</span>
+
+</code></pre>
+<p>You can list the available zones with this command:</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud compute zones list
+
+</code></pre>
+<p>Verify the configuration like this:</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud config list core/project
+[core]
+project = kubernetes-practice-ruairi
+
+Your active configuration is: [default]
+
+</code></pre>
+<p>Now create a cluster.</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud container clusters create my-cool-cluster
+
+</code></pre>
+<p>(probably pick a better cluster name)</p>
+<p>Verify it&#39;s there.</p>
+<pre class="highlight"><code class="hljs bash">
+gcloud container clusters list
+
+</code></pre>
+<p>You should see something like this.</p>
+<pre class="highlight"><code class="hljs bash">
+NAME             ZONE           MASTER_VERSION  MASTER_IP       MACHINE_TYPE   NODE_VERSION  NUM_NODES  STATUS
+my-cool-cluster  europe-west1<span class="hljs-_">-d</span> 1.6.4           130.211.181.72  n1-standard-1  1.6.4         1          RUNNING
+
+</code></pre>
+<h3 id="minikube">minikube</h3>
+<p>Minikube basically lets you run kubernetes locally. Follow the instructions here to get it setup:
+<a href="https://github.com/kubernetes/minikube">https://github.com/kubernetes/minikube</a></p>
+<p>With minkube creating a clust is a little easier:</p>
+<pre class="highlight"><code class="hljs bash">
+minikube start
+
+</code></pre>
+<p>You also have the added advantage of not needing to setup a GCP account and all that but it&#39;s only useful for developing stuff locally of course.</p>
+<p>To make sure kubectl is pointing at minikube try this:</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl cluster-info
+Kubernetes master is running at https://192.168.99.100:8443
+KubeDNS is running at https://192.168.99.100:8443/api/v1/proxy/namespaces/kube-system/services/kube-dns
+kubernetes-dashboard is running at https://192.168.99.100:8443/api/v1/proxy/namespaces/kube-system/services/kubernetes-dashboard
+
+</code></pre>
+<h3 id="switching-contexts-in-kubectl">Switching contexts in kubectl</h3>
+<p>If you end up using both GCP and mimikube, it&#39;s useful to easily switch contexts in kubectl</p>
+<p>These commands help:</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl config get-contexts
+
+</code></pre>
+<pre class="highlight"><code class="hljs bash">
+kubectl config use-context <span class="hljs-variable">${context_name}</span>
+
+</code></pre>
+<p>You can also set the context in each call:</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl &lt;some options here&gt; --context=minikube
+
+</code></pre>
+<h3 id="deploy-something">Deploy something</h3>
+<p>For this we can create a simple hello world application and put it in a container. Here&#39;s one I made earlier: <a href="https://hub.docker.com/r/ruairitobrien/hello-kubernetes-world/">https://hub.docker.com/r/ruairitobrien/hello-kubernetes-world/</a></p>
+<p>Note, these instructions should work the same whether you are using GCP or minikube.</p>
+<p>Code for that app is here but nothing interesting there really <a href="https://github.com/ruairitobrien/hello-kubernetes-world">https://github.com/ruairitobrien/hello-kubernetes-world</a></p>
+<pre class="highlight"><code class="hljs bash">
+kubectl run hello-kubernetes --image ruairitobrien/hello-kubernetes-world:latest
+
+</code></pre>
+<p>You should usually specify a version number so you have a history of deployed versions that you can switch to if needed but &#39;:latest&#39; will do for this tutorial. </p>
+<p>You should see</p>
+<pre class="highlight"><code class="hljs bash">
+deployment <span class="hljs-string">"hello-kubernetes"</span> created
+
+</code></pre>
+<p>Verify it worked</p>
+<pre class="highlight"><code class="hljs bash">
+$ kubectl get deployments
+NAME               DESIRED   CURRENT   UP-TO-DATE   AVAILABLE   AGE
+hello-kubernetes   1         1         1            1           1m
+
+</code></pre>
+<p>You can also check the pod that was created:</p>
+<pre class="highlight"><code class="hljs bash">
+$ kubectl get pods
+NAME                                READY     STATUS    RESTARTS   AGE
+hello-kubernetes-3390701390-jds31   1/1       Running   0          1m
+
+</code></pre>
+<p>Pods are an important part of kubernetes but rather than me going on about them it&#39;s best to read up here: <a href="https://kubernetes.io/docs/concepts/workloads/pods/pod/">https://kubernetes.io/docs/concepts/workloads/pods/pod/</a></p>
+<p>It&#39;s also useful to check out the describe functions. Most things have them.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl describe deployment &lt;deploymentName&gt;
+
+<span class="hljs-comment"># Example</span>
+kubectl describe deployment hello-kubernetes
+
+kubectl describe pods &lt;podName&gt;
+
+<span class="hljs-comment"># Example</span>
+kubectl describe pods hello-kubernetes-3390701390-jds31
+
+</code></pre>
+<h3 id="you-have-a-deployment">You have a deployment</h3>
+<p>Now that you have a deployment, what are you going to do with it?</p>
+<p>I am just going to show a few simple things here to give you an idea of what&#39;s available. Most of this and much more can be found  <a href="in these docs">https://kubernetes.io/docs/user-guide/kubectl-cheatsheet/</a>.</p>
+<p>You will probably want to look at logs a bit. You can look at the logs for a pod with this.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl logs &lt;podName&gt;
+
+<span class="hljs-comment"># Example</span>
+kubectl logs hello-kubernetes-3390701390-jds31
+
+</code></pre>
+<p>This will give you the logs for this instance of that pod. You can go more in detail, for example in the case where you have a pod with multiple containers. More on that <a href="https://kubernetes.io/docs/user-guide/kubectl/v1.6/#logs">here</a>.</p>
+<p>Now let the world see your amazing app!</p>
+<p>First, run get services.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get services
+NAME         CLUSTER-IP    EXTERNAL-IP   PORT(S)   AGE
+kubernetes   10.55.240.1   &lt;none&gt;        443/TCP   1h
+
+</code></pre>
+<p>You can see there is no external IP and no mention of the pod we created.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl expose deployment hello-kubernetes --<span class="hljs-built_in">type</span> LoadBalancer --port 80 --target-port=8000
+
+</code></pre>
+<p>Here we are using the load balancer option.</p>
+<blockquote>
+<p>LoadBalancer - Creates an external load balancer in the current cloud (if supported) and assigns a fixed, external IP to the Service. Superset of NodePort.</p>
+</blockquote>
+<p>There are other types you can use.</p>
+<blockquote>
+<p>Type for this service: ClusterIP, NodePort, or LoadBalancer. Default is &#39;ClusterIP&#39;.</p>
+</blockquote>
+<p>We&#39;re using LoadBalancer because it&#39;s a nice option for us to play around with autoscaling soon.</p>
+<p><code>--port</code> is the port we are exposing our service on.</p>
+<p><code>--target-port</code> is the port our application in the Docker image happens to be exposed on.</p>
+<p>Wait a minute or so for things to work out and then run this.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl describe svc hello-kubernetes
+
+</code></pre>
+<p>You should see something like this.</p>
+<pre class="highlight"><code class="hljs bash">
+Name:            hello-kubernetes
+Namespace:        default
+Labels:            run=hello-kubernetes
+Annotations:        &lt;none&gt;
+Selector:        run=hello-kubernetes
+Type:            LoadBalancer
+IP:            10.55.243.178
+LoadBalancer Ingress:    104.154.182.255
+Port:            &lt;<span class="hljs-built_in">unset</span>&gt;    80/TCP
+NodePort:        &lt;<span class="hljs-built_in">unset</span>&gt;    31390/TCP
+Endpoints:        10.52.0.5:8000
+Session Affinity:    None
+
+</code></pre>
+<p>The &#39;Endpoints&#39; value is the internal ip and port of your application running in the cluster. </p>
+<p>This value: LoadBalancer Ingress:    104.154.182.255 is what we can use to talk to our application externally. Stick the ip address that you see there in your browser and you should see &#39;hello kubernetes world&#39; or whatever you have your application sending back if you wrote your own there. </p>
+<h3 id="autoscaling">Autoscaling</h3>
+<p>This for me was the first really cool thing I came across when playing around with kubernetes. Now our application is deployed, we can attach an autoscaler to it. Here is a command we can use to do that.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl autoscale deployment hello-kubernetes --cpu-percent=1 --min=4 --max=12
+
+</code></pre>
+<p>Now we have attached an autoscaler.</p>
+<p><code>--cpu-percent</code> will try to average the utilization across all the pods to the percent we set i.e. will scale up until it hits the max amount of pods if cpu utilization goes above 10% on average across all existing pods. We set 1% for demonstration purposes so we have a chance of forcing the cluster to scale up when hitting it from our machine.</p>
+<p><code>--min</code> is the minimum amount of pods we want in the cluster.</p>
+<p><code>--max</code> is the maximum amount of pods we will allow the autoscaler to provision for us. </p>
+<p>The autoscaler will scale up when cpu is above 10% on average. It will also scale down to the minimum when cpu utilisation is below average.</p>
+<p>Try running this.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl describe svc hello-kubernetes
+
+</code></pre>
+<p>You should see something like this.</p>
+<pre class="highlight"><code class="hljs bash">
+Name:            hello-kubernetes
+Namespace:        default
+Labels:            run=hello-kubernetes
+Annotations:        &lt;none&gt;
+Selector:        run=hello-kubernetes
+Type:            LoadBalancer
+IP:            10.55.245.180
+LoadBalancer Ingress:    104.198.145.117
+Port:            &lt;<span class="hljs-built_in">unset</span>&gt;    80/TCP
+NodePort:        &lt;<span class="hljs-built_in">unset</span>&gt;    32063/TCP
+Endpoints:        10.52.0.5:8000,10.52.2.6:8000,10.52.2.7:8000,10.52.2.8:8000
+Session Affinity:    None
+
+</code></pre>
+<p>Notice we now have 4 endpoints. You could see this with <code>kubectl get pods</code> too. The autoscaler has already scaled up to meet the minimum requirements we set.</p>
+<p>To see the state of the autoscaler run this.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get hpa
+
+</code></pre>
+<p>You should see something like this.</p>
+<pre class="highlight"><code class="hljs bash">
+NAME               REFERENCE                     TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+hello-kubernetes   Deployment/hello-kubernetes   0% / 1%   4         12        4          1m
+
+</code></pre>
+<p>And just to confirm the number of pods is 4.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get pods
+NAME                                READY     STATUS    RESTARTS   AGE
+hello-kubernetes-3390701390-jds31   1/1       Running   0          3m
+hello-kubernetes-3390701390-q1v74   1/1       Running   0          3m
+hello-kubernetes-3390701390-txg9z   1/1       Running   0          3m
+hello-kubernetes-3390701390-w6kjg   1/1       Running   0          47m
+
+</code></pre>
+<p>Now the fun part. Let&#39;s see autoscaling in action! </p>
+<p>You probably have a better way of doing this (please comment with a suggestion) but what I did here was just run this.</p>
+<pre class="highlight"><code class="hljs bash">
+<span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>; <span class="hljs-keyword">do</span> curl -XGET <span class="hljs-variable">${IP}</span> &amp; <span class="hljs-keyword">done</span>
+
+<span class="hljs-comment"># So for my cluster in the above examples that was</span>
+
+<span class="hljs-keyword">while</span> <span class="hljs-literal">true</span>; <span class="hljs-keyword">do</span> curl -XGET 104.198.145.117 &amp; <span class="hljs-keyword">done</span>
+
+</code></pre>
+<p>Or something a little safer perhaps.</p>
+<pre class="highlight"><code class="hljs bash">
+<span class="hljs-keyword">for</span> i <span class="hljs-keyword">in</span> {1..1000}; <span class="hljs-keyword">do</span> curl -XGET <span class="hljs-variable">${IP}</span> &amp; <span class="hljs-keyword">done</span>
+
+</code></pre>
+<p>If you go down the safe route with a limited loop, the timing where you check the following things is important.</p>
+<p>After a while you should start to see autoscaling kicking in:</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get hpa
+NAME               REFERENCE                     TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+hello-kubernetes   Deployment/hello-kubernetes   3% / 1%   4         12        8          4m
+
+</code></pre>
+<p>You can see the &#39;TARGETS&#39; ratio (that&#39;s the CPU utilisation) is grown above that which we specified. In my example it&#39;s 3% but the autoscaler wants it to be below 1% on average so it should start scaling up to bring that back in balance. </p>
+<p>Check the new pods getting created.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get pods
+NAME                                READY     STATUS    RESTARTS   AGE
+hello-kubernetes-3390701390-1ght4   1/1       Running   0          39s
+hello-kubernetes-3390701390-2gp0c   1/1       Running   0          39s
+hello-kubernetes-3390701390-ddgv0   1/1       Running   0          39s
+hello-kubernetes-3390701390-jds31   1/1       Running   0          4m
+hello-kubernetes-3390701390-q1v74   1/1       Running   0          4m
+hello-kubernetes-3390701390-t6s63   1/1       Running   0          39s
+hello-kubernetes-3390701390-txg9z   1/1       Running   0          4m
+hello-kubernetes-3390701390-w6kjg   1/1       Running   0          48m
+
+</code></pre>
+<p>Don&#39;t forget to while loop! Unless you used the for loop of course.</p>
+<p>After a minute or 2 check again.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get hpa
+NAME               REFERENCE                     TARGETS   MINPODS   MAXPODS   REPLICAS   AGE
+hello-kubernetes   Deployment/hello-kubernetes   0% / 1%   4         12        8          8m
+
+</code></pre>
+<p>See the pods are terminating.</p>
+<pre class="highlight"><code class="hljs bash">
+kubectl get pods
+NAME                                READY     STATUS        RESTARTS   AGE
+hello-kubernetes-3390701390-1ght4   1/1       Terminating   0          5m
+hello-kubernetes-3390701390-2gp0c   1/1       Terminating   0          5m
+hello-kubernetes-3390701390-ddgv0   1/1       Terminating   0          5m
+hello-kubernetes-3390701390-jds31   1/1       Running       0          9m
+hello-kubernetes-3390701390-q1v74   1/1       Running       0          9m
+hello-kubernetes-3390701390-t6s63   1/1       Terminating   0          5m
+hello-kubernetes-3390701390-txg9z   1/1       Running       0          9m
+hello-kubernetes-3390701390-w6kjg   1/1       Running       0          53m
+
+</code></pre>
+<p>They may already be gone depending how long you waited to check. </p>
+<p>Maybe I am too easily impressed but I just think that is awesome!</p>
+]]></description>
+            <link>http://realgorithm.io//2017/06/introduction-to-kubernetes</link>
+            <guid isPermaLink="true">http://realgorithm.io//2017/06/introduction-to-kubernetes</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Tue, 27 Jun 2017 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Start Game Coding in ES6]]></title>
+            <description><![CDATA[<p><strong>TL;DR</strong> If you want to try my solution to developing with <a href="http://phaser.io/">phaser 2</a> and es6, try this yeoman generator <a href="https://www.npmjs.com/package/generator-fire-phaser">here</a>.</p>
+<h3 id="what-">What?</h3>
+<p>A while back I discovered a HTML5 game development framework called <a href="http://phaser.io/">phaser</a>. It is really cool and a lot of fun to work with. This post is about how I set up a good and simple development environment to work with Phaser 2 and es6. If you&#39;re interested in getting started with phaser or have just been looking for a good way to use it with es6 then you might find some of the details below useful.</p>
+<p>If by some amazing coincidence you happen to be struggling with getting a JavaScript library that relies on globals to work with some es6 build process, this post may also be of use to you.</p>
+<h3 id="why-">Why?</h3>
+<p>When I first became a programmer all I wanted to do was make games. In my opinion games are the most fun thing to code. They are also a huge amount of work which is probably why I have yet to fully complete one beyond some basic efforts.</p>
+<p>I have half built games with XNA, C++, even.... Java. Phaser is the best thing I have come across yet. Despite my love of coding games I just can&#39;t put in all the effort required to make a fancy 3D thing so I love the quick and simple 2D games I can make with phaser. I even had my 7 year old son coding a little on a game and he loves seeing changes like making a character run faster or jump higher. If you want to get started making simple games I can&#39;t recommend phaser enough.</p>
+<p>Anyway, since this is JavaScript I immediately hit a problem starting new game projects beyond a simple tutorial and this blog post is about how I got a workflow going that I like and that I wanted to share.</p>
+<p>Besides using phaser I did not want to complicate things by adding any other frameworks and I did not want a complicated build process. I just want to make a game and keep things as simple and fun as possible. I really want to use full blown es6 with modules though and that presented a small challenge. Phaser 2 has been around for some time and was not designed to work with es6. Soon phaser 3 will come out and this post will be obsolete but until then, here&#39;s how I got a a nice setup for phaser 2 and es6.</p>
+<h3 id="how-">How?</h3>
+<p>The first thing I tried to do was use <a href="https://babeljs.io/">babel</a> and <a href="http://browserify.org/">browserify</a> on the command line. I have used npm to install phaser and I had a simple JavaScript file that has an <code>import Phaser from &#39;phaser&#39;</code> statement at the top. It didn&#39;t start well. I was getting an error saying PIXI was not defined. After digging around the phaser source for a while I realized that the built phaser file assigned some dependencies on the global scope. I noticed that the <a href="https://www.npmjs.com/package/phaser">phaser node module</a> had those dependencies separated into their own files too. It occurred to me that I would probably need to use webpack now.</p>
+<p>I always end up having to use webpack these days. Even though it&#39;s a great tool, I always try not to use it because it just seems to add a bunch of complexity. Doesn&#39;t seem to be any good way around it here though and I think the config I use is simple enough to be OK.</p>
+<p>I had come across the webpack <a href="https://github.com/webpack/expose-loader">expose-loader</a> module before and it appears to solve the particular issue of using a library that relies on globals. I did pause to wonder if it was worth the effort now just so I would use <code>import Phase from &#39;phaser&#39;</code> instead of <code>Phaser</code> as a global and decided it was.</p>
+<p>The module loaders are configured like so:</p>
+<pre class="highlight"><code class="hljs javascript"><span class="hljs-keyword">var</span> pixiiJs = <span class="hljs-string">'pixi.js'</span>;
+<span class="hljs-keyword">var</span> p2Js = <span class="hljs-string">'p2.js'</span>;
+
+<span class="hljs-built_in">module</span>: {
+    <span class="hljs-attr">loaders</span>: [
+      { <span class="hljs-attr">test</span>: <span class="hljs-regexp">/\.css$/</span>, <span class="hljs-attr">loader</span>: <span class="hljs-string">'style-loader!css-loader'</span> },
+      { <span class="hljs-attr">test</span>: <span class="hljs-regexp">/\.js$/</span>, <span class="hljs-attr">exclude</span>: <span class="hljs-regexp">/node_modules/</span>, <span class="hljs-attr">loader</span>: <span class="hljs-string">"babel-loader"</span> },
+      { <span class="hljs-attr">test</span>: <span class="hljs-regexp">/\.json$/</span>, <span class="hljs-attr">loader</span>: <span class="hljs-string">'json'</span> },      
+      { <span class="hljs-attr">test</span>: <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(pixiiJs), <span class="hljs-attr">loader</span>: <span class="hljs-string">'expose?PIXI'</span> },
+      { <span class="hljs-attr">test</span>: <span class="hljs-keyword">new</span> <span class="hljs-built_in">RegExp</span>(p2Js), <span class="hljs-attr">loader</span>: <span class="hljs-string">'expose?p2'</span> }
+    ]
+  }
+</code></pre>
+<p><code>{ test: /\.css$/, loader: &#39;style-loader!css-loader&#39; }</code> Allows importing of css files in scripts at build time using <a href="https://github.com/webpack/css-loader">css-loader</a>. Totally optional. I just like that way of getting css in to the page.</p>
+<p><code>{ test: /\.js$/, exclude: /node_modules/, loader: &quot;babel-loader&quot; }</code> This converts our es6 code to es5 for browser support.</p>
+<p><code>{ test: /\.json$/, loader: &#39;json&#39; }</code> For importing JSON files to scripts at build time.</p>
+<p><code>{ test: new RegExp(pixiiJs), loader: &#39;expose?PIXI&#39; }</code> This will assign PIXI to the global object when it gets imported in our es6 code. We do need to have <code>import &#39;pixi&#39;</code> in the entry point of our code. We do not need to use the global object in our code but it is there for phaser to use.</p>
+<p><code>{ test: new RegExp(p2Js), loader: &#39;expose?p2&#39; }</code> Same as with PIXI, we are putting this on the global object for phaser to use. We also need <code>import &#39;p2&#39;</code> in the entry point of our code.</p>
+<p>That was pretty much the only tricky part.</p>
+<p>I am going to be working on a few games in parallel and will probably never finish any of them, so to help with that I created a yeoman generator that will generate a project with a webpack configuration and some sample phaser code written in es6.</p>
+<p>If you would like to use it or just want to see what I needed to do to get it all set up run this command (assuming you have nodejs installed)</p>
+<pre class="highlight"><code class="hljs stylus"> npm <span class="hljs-selector-tag">i</span> -g yo generator-fire-phaser
+</code></pre><p> Or for yarn (assuming you also installed yeoman globally with yarn)</p>
+<pre class="highlight"><code class="hljs dockerfile"> yarn global <span class="hljs-keyword">add</span><span class="bash"> generator-fire-phaser
+</span></code></pre><p> Then in an empty directory run:</p>
+<pre class="highlight"><code class="hljs ebnf"><span class="hljs-attribute"> yo fire-phaser</span>
+</code></pre><p>You&#39;ll be prompted to answer a few questions that will be used to name the project and set some text in it.</p>
+<p> The reference code in there might be handy for seeing how to structure ES6 code with phaser too.</p>
+<p>The Github repo for the generator is <a href="https://github.com/ruairitobrien/generator-fire-phaser">here</a>.</p>
+<p>Hope you make some games!</p>
+]]></description>
+            <link>http://realgorithm.io//2016/11/firing-phasers</link>
+            <guid isPermaLink="true">http://realgorithm.io//2016/11/firing-phasers</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Thu, 10 Nov 2016 00:00:00 GMT</pubDate>
+        </item>
+        <item>
+            <title><![CDATA[Adding More Stuff to Your Blog]]></title>
+            <description><![CDATA[<p>What I will cover here hardly even needs a blog post but since I went through how to build a blog with docpad in <a href="http://ruairitobrien.github.io/2016/04/to-make-a-blog/">my first post</a> it sort of makes sense to continue on that subject as I make updates to this blog.</p>
+<p>I am going to add the ability for visitors to my blog to sign up to my yet to be created mailing list and I am going to add some analytics so I can see if anyone actually visits my site. Probably setting myself up for some depressing results here but these two features are just useful to have in any blog I think.</p>
+<h2 id="mailing-list">Mailing list</h2>
+<p>For this I used <a href="http://mailchimp.com/">MailChimp</a>. I created an account with them and then blundered my way through creating a mailing list. There are many other options besides MailChimp out there so use whatever one you prefer. The instructions aren&#39;t likely to change too much. MailChimp just happens to have an easy setup and a free plan so that&#39;s why I went with them. Important to note that when you are creating an account with MailChimp and I presume any other mail service, you will be asked to provide a real physical address. This is a legal requirement and will be available to anybody you email using that service. Just something to be aware of.</p>
+<p>Once your account is set up the option to create a mailing list will be shown to you. You&#39;ll be asked for some basic details. To give you an idea of what, I&#39;ve put a picture of the form below.</p>
+<p><img src="/img/adding-more-stuff-to-your-blog/create-list.png" alt="alt text" title="Create List"></p>
+<p>If you use a free email address (like a gmail address) as the &#39;default from address&#39; you will get a warning telling you people may not get the emails. Ideally you would have your own domain and your own email address to use for that to avoid this issue.</p>
+<p>Next step is to create a form.</p>
+<p><img src="/img/adding-more-stuff-to-your-blog/create-form.png" alt="alt text" title="Create Form"></p>
+<p>You will probably want to use either the Embedded forms or the Subscriber popup option. When you select one of those options you will be able to customize things a little and then you will be given some code that you can paste in to your blog.</p>
+<p>I chose to put my form in the right navigation menu so I pasted an embedded form in to <code>src/partials/navigation.html.eco</code> just after the site navigation &#39;ul&#39; element. You can see the result by clicking the menu button at the top of this page.</p>
+<p>Now that you have a form on your site, hopefully somebody might subscribe and you can email them. In MailChimp you can set up a campaign to do this. You can use some email template there and send it to everyone on the list either manually or at regular intervals. There&#39;s a lot of options there. If you want to fully automate the sending of emails, there does appear to be a way to send content from an RSS feed so if you have RSS setup for you blog (went through that in the first blog post), you may be able to use that.</p>
+<h2 id="analytics">Analytics</h2>
+<p>For this I am going to use <a href="https://www.google.ie/analytics/">Google Analytics</a>. If you have set this up before then there&#39;s really nothing new here. If you haven&#39;t, don&#39;t worry it&#39;s really simple.</p>
+<p>You will need a Google account. I&#39;ll just assume you have one here. Go to the Google Analytics site at <a href="https://www.google.ie/analytics">https://www.google.ie/analytics</a>, sign in with your Google account and go to admin settings. In the admin section you should see an option to <strong>Create a New Property</strong>.</p>
+<p><img src="/img/adding-more-stuff-to-your-blog/create-property.png" alt="alt text" title="Create Property"></p>
+<p>Fill out the fields with your site name and URL and click the <strong>Get Tracking ID</strong> button. You&#39;ll then be shown some code to paste in to your site.</p>
+<p><img src="/img/adding-more-stuff-to-your-blog/tracking-id.png" alt="alt text" title="Tracking ID"></p>
+<p>You&#39;ll probably want to put this code at the bottom of <code>src/layouts/default.html.eco</code> or whatever your default layout file is if it is different. This will ensure all visits to your blog get tracked.</p>
+<p>That&#39;s it. Very little to it and very straight forward.</p>
+]]></description>
+            <link>http://realgorithm.io//2016/04/adding-more-stuff-to-your-blog</link>
+            <guid isPermaLink="true">http://realgorithm.io//2016/04/adding-more-stuff-to-your-blog</guid>
+            <dc:creator><![CDATA[ruairi]]></dc:creator>
+            <pubDate>Sat, 02 Apr 2016 00:00:00 GMT</pubDate>
+        </item>
+    </channel>
+</rss>
